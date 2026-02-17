@@ -1,0 +1,279 @@
+﻿@model IEnumerable<DCAS.Models.Users>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<style>
+    .card-header {
+        max-width: fit-content;
+        width: auto;
+        padding: 5px 15px;
+        background-color: #7A4B00;
+        margin: -15 auto;
+    }
+
+        .card-header h2 {
+            margin: 0;
+            padding: 5px 0;
+            color: white;
+        }
+
+    .btn-create {   
+        background-color: #7A4B00;
+        color: #DACBAE;
+        margin-top: -50px;
+    }
+    .bg-okay1 {
+        background-color: #DACBAE;
+    }
+    .bg-okay2{
+        background-color: #DACBAE;
+        color: #7A4B00;
+    }
+
+    .img-thumbnail {
+        border-color: #7A4B00;
+    }
+
+    .nameofuser, h5, .img-thumbnail {
+        color: #7A4B00;
+    }
+</style>
+<div class="card">
+    <div class="card-header text-black">
+        <h2 class="mb-0">
+            <i class="fas fa-users"></i> Users
+        </h2>
+    </div>
+
+    <div class="m-5">
+
+<p>
+    <a asp-action="Create" class="btn btn-create">Create New</a>
+</p>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var item in Model)
+    {
+        <div class="col">
+            <div class="card h-100">
+                <img src="@(item.Profile != null && item.Profile.Length > 0 ? Url.Action("GetImage", "Users", new { id = item.UsersId }) : Url.Content("~/images/avatar-placeholder.png"))" class="card-img-top" alt="User Profile Image" style="object-fit: cover; height: 200px;">
+                <div class="card-body">
+                    <h5 class="card-title">@Html.DisplayFor(modelItem => item.Name)</h5>
+                    <ul class="list-unstyled">
+                        <li><strong>Email:</strong> @Html.DisplayFor(modelItem => item.Email)</li>
+                        <li><strong>Role:</strong> @Html.DisplayFor(modelItem => item.Role)</li>
+                        <li><strong>Job Title:</strong> @Html.DisplayFor(modelItem => item.JobTitle)</li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a asp-action="Edit" asp-route-id="@item.UsersId" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a href="#" class="btn btn-sm btn-outline-info details-link" data-bs-toggle="modal" data-bs-target="#userDetailsModal"
+                       data-id="@item.UsersId"
+                       data-name="@item.Name"
+                       data-address="@item.Address"
+                       data-email="@item.Email"
+                       data-phonenumber="@item.PhoneNumber"
+                       data-role="@item.Role"
+                       data-jobtitle="@item.JobTitle"
+                       data-specialization="@item.Specialization"
+                       data-gender="@item.Gender"
+                       data-nationality="@item.Nationality"
+                       data-position="@item.Position"
+                       data-workstatus="@item.WorkStatus"
+                       data-age="@item.Age"
+                       data-birthdate="@item.BirthDate.ToString("yyyy-MM-dd")"
+                       data-startdate="@item.StartDate.ToString("yyyy-MM-dd")"
+                       data-username="@item.Username">Details</a>
+                    <a href="#" class="btn btn-sm btn-outline-danger delete-link" data-id="@item.UsersId" data-name="@item.Name">Delete</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+<!-- User Profile Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+
+            <!-- Header -->
+            <div class="modal-header bg-okay1 text-dark">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-circle me-2"></i>
+                    <span id="modal-name-full"class="nameofuser"></span>'s Profile
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body bg-light">
+                <div class="row">
+                    <!-- Left Sidebar -->
+                    <div class="col-md-3">
+                        <div class="card text-center border-0 shadow-sm">
+                            <div class="card-header bg-okay2">
+                                Profile
+                            </div>
+                            <div class="card-body">
+                                <img id="modal-image" class="img-thumbnail rounded-circle mb-3" alt="Profile Image" />
+                                <h5 id="modal-name-full" class="fw-bold text-dark"></h5>
+                                <p><b>Username:</b> <small id="modal-username"></small></p>
+                                <hr />
+                                <p><i class="bi bi-envelope text-warning"></i> <b>Email:</b> <span id="modal-email"></span></p>
+                                <p><i class="bi bi-telephone text-warning"></i> <b>Contact:</b> <span id="modal-phonenumber"></span></p>
+                                <p><i class="bi bi-geo-alt text-warning"></i> <b>Nationality:</b> <span id="modal-nationality"></span></p>
+                                <p><i class="bi bi-person text-warning"></i> <b>Age:</b> <span id="modal-age"></span></p>
+                                <p><i class="bi bi-calendar text-warning"></i> <b>BirthDate:</b> <span id="modal-birthdate"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Tabs -->
+                    <div class="col-md-9">
+                        <ul class="nav nav-tabs bg-okay1 p-2 rounded" id="profileTabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active bg-okay2 fw-bold" data-bs-toggle="tab" href="#personal">Personal Info</a>
+                            </li>
+                            <li class="nav-item">
+                                        <a class="nav-link bg-okay2 fw-bold" data-bs-toggle="tab" href="#address">Home Address</a>
+                            </li>
+                            <li class="nav-item">
+                                        <a class="nav-link bg-okay2 fw-bold" data-bs-toggle="tab" href="#schedule">Working Schedule</a>
+                            </li>
+                            <li class="nav-item">
+                                        <a class="nav-link bg-okay2 fw-bold" data-bs-toggle="tab" href="#safety">Health & Safety</a>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content border rounded-bottom p-3 bg-white shadow-sm">
+                            <div class="tab-pane fade show active" id="personal">
+                                <p><strong>Job Title:</strong> <span id="modal-jobtitle-badge" class="badge bg-okay2 text-dark"></span></p>
+                                <p><strong>Start Date:</strong> <span id="modal-startdate"></span></p>
+                                <p><strong>Specialization:</strong> <span id="modal-specialization"></span></p>
+                            </div>
+
+                            <div class="tab-pane fade" id="address">
+                                <p><strong>Address:</strong> <span id="modal-address"></span></p>
+                                <p><strong>City:</strong> <span id="modal-city"></span></p>
+                                <p><strong>Postal Code:</strong> <span id="modal-postalcode"></span></p>
+                            </div>
+
+                            <div class="tab-pane fade" id="schedule">
+                                <p><strong>Position:</strong> <span id="modal-position"></span></p>
+                                <p><strong>Work Status:</strong> <span id="modal-workstatus"></span></p>
+                                <p><strong>Total Weekly Hours:</strong> 40</p>
+                            </div>
+
+                            <div class="tab-pane fade" id="safety">
+                                <p><strong>Licenses:</strong> CPR / BLS Certification, Dental Implants</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal-footer bg-okay2">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this delete confirmation modal (paste after the userDetailsModal) -->
+<div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-okay1 text-dark">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteUserName"></strong>?</p>
+            </div>
+            <div class="modal-footer bg-okay2">
+                <form id="deleteUserForm" asp-action="Delete" asp-controller="Users" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="deleteUserId" name="id" value="" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</div>
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.details-link').on('click', function (e) {
+                e.preventDefault();
+
+                // Get data from the clicked link's data attributes
+                var userId = $(this).data('id');
+                var userName = $(this).data('name');
+                var userAddress = $(this).data('address');
+                var userEmail = $(this).data('email');
+                var userPhoneNumber = $(this).data('phonenumber');
+                var userRole = $(this).data('role');
+                var userJobTitle = $(this).data('jobtitle');
+                var userSpecialization = $(this).data('specialization');
+                var userGender = $(this).data('gender');
+                var userNationality = $(this).data('nationality');
+                var userPosition = $(this).data('position');
+                var userWorkStatus = $(this).data('workstatus');
+                var userAge = $(this).data('age');
+                var userBirthDate = $(this).data('birthdate');
+                var userStartDate = $(this).data('startdate');
+                var userUsername = $(this).data('username');
+
+                // Populate the modal's content
+                $('#modal-name-full').text(userName);
+                $('#modal-role-badge').text(userRole);
+                $('#modal-jobtitle-badge').text(userJobTitle);
+                $('#modal-address').text(userAddress);
+                $('#modal-email').text(userEmail);
+                $('#modal-phonenumber').text(userPhoneNumber);
+                $('#modal-specialization').text(userSpecialization);
+                $('#modal-gender').text(userGender);
+                $('#modal-nationality').text(userNationality);
+                $('#modal-position').text(userPosition);
+                $('#modal-workstatus').text(userWorkStatus);
+                $('#modal-age').text(userAge);
+                $('#modal-birthdate').text(userBirthDate);
+                $('#modal-startdate').text(userStartDate);
+                $('#modal-username').text(userUsername);
+                $('#modal-image').attr('src', '@Url.Action("GetImage", "Users")' + '?id=' + userId);
+
+                // Show the modal
+                $('#userDetailsModal').modal('show');
+            });
+
+            // JavaScript for the Delete Confirmation Modal
+            $('.delete-link').on('click', function (e) {
+                e.preventDefault();
+                var userId = $(this).data('id');
+                var userName = $(this).data('name');
+
+                $('#deleteUserId').val(userId);
+                $('#deleteUserName').text(userName);
+
+                $('#deleteConfirmationModal').modal('show');
+            });
+        });
+
+          // JavaScript for the Delete Confirmation Modal
+            $('.delete-link').on('click', function (e) {
+                e.preventDefault();
+                var userId = $(this).data('id');
+                var userName = $(this).data('name');
+
+                $('#deleteUserId').val(userId);
+                $('#deleteUserName').text(userName);
+
+                $('#deleteConfirmationModal').modal('show');
+            });
+        
+    </script>
+}

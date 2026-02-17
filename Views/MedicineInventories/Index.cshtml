@@ -1,0 +1,350 @@
+﻿@model IEnumerable<DCAS.Models.MedicineInventory>
+@{
+    ViewData["Title"] = "Index";
+}
+<style>
+    .card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        }
+
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .btn-group .btn {
+        flex: 1;
+    }
+    
+
+    .modal-body img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .detail-item {
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+
+    .detail-label {
+        font-weight: bold;
+        color: #495057;
+    }
+      .card-header {
+  max-width: fit-content;  
+  width: auto;  
+  padding: 5px 15px;
+        background-color: #7A4B00;
+  margin: -15 auto; 
+}
+
+.card-header h2 {
+  margin: 0;  
+  padding: 5px 0;
+            color: white;
+        }
+.btn{
+    margin-top:5px;
+    margin-left:20px;
+}
+.btn-create{
+        background-color: #7A4B00;
+        color:white;
+        margin-top:12px;
+}
+</style>
+<div class="card">
+  <div class="card-header text-black">
+                    <h2 class="mb-0">
+                        <i class="fas fa-pills"></i> Medicine Inventory
+                    </h2>
+                </div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<p>
+    <a class="btn btn-create" asp-action="Create">
+        <i class="fas fa-plus"></i> Create New Medicine
+    </a>
+</p>
+<div class="m-5 mt-1">
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <!-- Image Section -->
+                @if (item.Image != null && item.Image.Length > 0)
+                {
+                    <div class="card-img-top d-flex justify-content-center align-items-center" style="height: 200px; background-color: #f8f9fa;">
+                        <img src="@Url.Action("GetImage", "MedicineInventories", new { id = item.Id })"
+                             alt="@item.MedicineName"
+                             class="img-fluid rounded"
+                             style="max-height: 180px; max-width: 100%; object-fit: contain;"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1zaXplPSIxMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iIGZpbGw9IiM5OTkiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';" />
+                    </div>
+                }
+                else
+                {
+                    <div class="card-img-top d-flex justify-content-center align-items-center bg-light" style="height: 200px;">
+                        <div class="text-center text-muted">
+                            <i class="fas fa-image fa-3x mb-2"></i>
+                            <p>No Image Available</p>
+                        </div>
+                    </div>
+                }
+
+                <!-- Card Body -->
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title text-primary">@item.MedicineName</h5>
+
+                    <div class="card-text flex-grow-1">
+                        <p class="mb-1">
+                            <strong>💰 Price:</strong>
+                            <span class="badge bg-success">₱@item.Price.ToString("N2")</span>
+                        </p>
+                        <p class="mb-1">
+                            <strong>📦 Quantity:</strong>
+                            <span class="badge bg-info">@item.Quantity units</span>
+                        </p>
+                        @if (!string.IsNullOrEmpty(item.Miligram))
+                        {
+                            <p class="mb-1">
+                                        <strong>⚖️ Miligram:</strong> @item.Miligram
+                            </p>
+                        }
+                        @if (!string.IsNullOrEmpty(item.Description))
+                        {
+                            <p class="mb-1">
+                                <strong>📝 Description:</strong>
+                                <span class="text-truncate d-inline-block" style="max-width: 200px;" title="@item.Description">
+                                    @item.Description
+                                </span>
+                            </p>
+                        }
+                        <p class="mb-1">
+                            <strong>📅 Expiry:</strong>
+                            @{
+                                var isExpired = item.ExpiryDate < DateTime.Now;
+                                var isExpiringSoon = item.ExpiryDate < DateTime.Now.AddDays(30) && !isExpired;
+                            }
+                            <span class="badge @(isExpired ? "bg-danger" : isExpiringSoon ? "bg-warning text-dark" : "bg-secondary")">
+                                @item.ExpiryDate.ToString("MMM dd, yyyy")
+                                @if (isExpired)
+                                {
+                                    <i class="fas fa-exclamation-triangle ms-1"></i>
+                                }
+                                else if (isExpiringSoon)
+                                {
+                                    <i class="fas fa-clock ms-1"></i>
+                                }
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-auto">
+                        <div class="btn-group w-100" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="openDetailsModal(@item.Id)" title="View Details">
+                                <i class="fas fa-eye"></i> Details
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" onclick="openEditModal(@item.Id)" title="Edit">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete(@item.Id)" title="Delete">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@if (!Model.Any())
+{
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-pills fa-5x text-muted"></i>
+        </div>
+        <h3 class="text-muted">No Medicine Inventory Found</h3>
+        <p class="text-muted">Start by creating your first medicine inventory item.</p>
+        <a class="btn btn-success btn-lg" asp-action="Create">
+            <i class="fas fa-plus"></i> Create First Medicine
+        </a>
+    </div>
+}
+</div>
+</div>
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="editModalLabel">
+                    <i class="fas fa-edit"></i> Edit Medicine
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="detailsModalLabel">
+                    <i class="fas fa-info-circle"></i> Medicine Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="detailsModalBody">
+                <!-- Details content will be loaded here -->
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    function openDetailsModal(id) {
+        $('#detailsModal').modal('show');
+
+        // Reset modal body
+        $('#detailsModalBody').html(`
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+
+        // Load details via AJAX
+        $.get('@Url.Action("GetDetails", "MedicineInventories")', { id: id })
+            .done(function(data) {
+                $('#detailsModalBody').html(data);
+            })
+            .fail(function() {
+                $('#detailsModalBody').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading details. Please try again.
+                    </div>
+                `);
+            });
+    }
+
+    function openEditModal(id) {
+        $('#editModal').modal('show');
+
+        // Reset modal body
+        $('#editModalBody').html(`
+            <div class="d-flex justify-content-center">
+                <div class="spinner-border text-warning" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        `);
+
+        // Load edit form via AJAX
+        $.get('@Url.Action("GetEditForm", "MedicineInventories")', { id: id })
+            .done(function(data) {
+                $('#editModalBody').html(data);
+            })
+            .fail(function() {
+                $('#editModalBody').html(`
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading edit form. Please try again.
+                    </div>
+                `);
+            });
+    }
+
+    function confirmDelete(id) {
+        if (confirm("Do you really want to delete this medicine?")) {
+            $.post('@Url.Action("DeleteConfirmed", "MedicineInventories")', { id: id })
+                .done(function (response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert("Failed to delete item. Try again.");
+                    }
+                })
+                .fail(function () {
+                    alert("Error deleting item.");
+                });
+        }
+    }
+
+
+         // Handle form submission in edit modal (with file upload support)
+     // Handle form submission in edit modal
+    $(document).on('submit', '#editForm', function (e) {
+        e.preventDefault();
+
+        var form = $('#editForm')[0];
+        var formData = new FormData(form);
+
+        // debug: log form keys and values (files will show as File)
+        for (var pair of formData.entries()) {
+            console.log('FormData:', pair[0], pair[1]);
+        }
+
+        $.ajax({
+            url: '@Url.Action("EditModal", "MedicineInventories")',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                console.log('EditModal response:', response);
+                if (response && response.success) {
+                    $('#editModal').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Failed to save changes. ' + (response && response.error ? response.error : 'Please try again.'));
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error('EditModal ajax error:', textStatus, errorThrown, jqXHR.responseText);
+                alert('Error saving changes. See console (F12) for details.');
+            }
+        });
+    });
+</script>

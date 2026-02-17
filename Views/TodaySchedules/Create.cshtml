@@ -1,0 +1,328 @@
+﻿@model DCAS.Models.TodaySchedule
+@{
+    ViewData["Title"] = "Create Schedule";
+}
+
+<div class="page-card">
+    <div class="page-card-header">
+        <div class="d-flex align-items-center">
+            <div class="icon-wrap me-3">
+                <i class="fas fa-calendar-plus fa-lg"></i>
+            </div>
+            <div>
+                <h4 class="mb-0">Create New Schedule</h4>
+                <small class="text-muted">Select date and one or more time slots to create schedule entries</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="page-card-body">
+        <div class="row gx-3">
+            <!-- Left: inputs + actions -->
+            <div class="col-lg-7">
+                <div class="panel panel-left">
+                    <div class="panel-body">
+                        <form asp-action="Create" id="scheduleForm" method="post" novalidate>
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger d-none" role="alert"></div>
+
+                            <div class="mb-3">
+                                <label class="field-label"><i class="fas fa-calendar-alt me-2"></i>Event Date</label>
+                                <div class="input-group">
+                                    <input asp-for="EventDate" id="eventDate" type="date" class="form-control form-control-lg" />
+                                    <span class="input-group-text input-icon"><i class="far fa-calendar-alt"></i></span>
+                                </div>
+                                <span asp-validation-for="EventDate" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="field-label"><i class="fas fa-clock me-2"></i>Event Time (Primary)</label>
+                                <div class="input-group">
+                                    <input asp-for="EventTime" id="eventTime" type="time" class="form-control form-control-lg" />
+                                    <span class="input-group-text input-icon"><i class="far fa-clock"></i></span>
+                                </div>
+                                <div class="form-text small text-muted mt-1">The first selected time will be used as the primary time field.</div>
+                            </div>
+
+                            <input asp-for="PersonName" type="hidden" />
+                            <input type="hidden" id="selectedTimes" name="selectedTimes" value="" />
+
+                            <div id="conflictWarning" class="alert alert-warning d-none mt-3" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Time Conflict:</strong> One or more selected slots are unavailable and were deselected.
+                            </div>
+
+                            <div class="d-flex gap-2 mt-4">
+                                <a asp-action="Index" class="btn btn-brown-outline">
+                                    <i class="fas fa-arrow-left me-1"></i> Back
+                                </a>
+                                <button type="submit" class="btn btn-brown" id="submitButton">
+                                    <i class="fas fa-save me-1"></i> Create Selected Schedules
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: quick time selection -->
+            <div class="col-lg-5">
+                <div class="panel panel-right">
+                    <div class="panel-body">
+                        <div class="d-flex align-items-start justify-content-between mb-2">
+                            <div>
+                                <h6 class="mb-0 quick-title">Quick Time Selection</h6>
+                                <small class="text-muted">Tap slots to toggle selection</small>
+                            </div>
+                            <div class="selected-badge" id="selectedBadge">Selected: <span id="selectedCount">0</span></div>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="section small text-uppercase text-muted mb-2">Morning</div>
+                            <div class="row gx-2 gy-2 mb-3">
+                                <div class="col-6"><button type="button" class="time-slot" data-time="08:00">8:00 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="08:30">8:30 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="09:00">9:00 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="09:30">9:30 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="10:00">10:00 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="10:30">10:30 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="11:00">11:00 AM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="11:30">11:30 AM</button></div>
+                            </div>
+
+                            <div class="section small text-uppercase text-muted mb-2">Afternoon</div>
+                            <div class="row gx-2 gy-2">
+                                <div class="col-6"><button type="button" class="time-slot" data-time="13:00">1:00 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="13:30">1:30 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="14:00">2:00 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="14:30">2:30 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="15:00">3:00 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="15:30">3:30 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="16:00">4:00 PM</button></div>
+                                <div class="col-6"><button type="button" class="time-slot" data-time="16:30">4:30 PM</button></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- row -->
+    </div> <!-- page-card-body -->
+</div> <!-- page-card -->
+
+<style>
+    /* Colors tuned to your Figma: brown/gold + pale-gold panels */
+    :root {
+        --brand-brown: #7A4B00;
+        --brand-gold: #D9B46C;
+        --panel-surface: #EBDCC0;
+        --muted: #6f5252;
+    }
+
+    .page-card { width: 100%; }
+    .page-card-header {
+        background: var(--brand-brown);
+        color: var(--brand-gold);
+        padding: 12px 18px;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: 10px;
+    }
+
+    .page-card-header .icon-wrap {
+        width: 42px;
+        height: 42px;
+        border-radius: 6px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background: rgba(255,255,255,0.06);
+        color: var(--brand-gold);
+    }
+
+    .page-card-body {
+        background: transparent;
+    }
+
+    .panel {
+        border-radius: 8px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        overflow: hidden;
+    }
+
+    .panel-left { background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96)); }
+    .panel-right { background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.96)); }
+
+    .panel .panel-body {
+        padding: 18px;
+        background: var(--panel-surface);
+    }
+
+    .field-label { color: var(--muted); font-weight:600; text-transform: none; letter-spacing: .02em; display:block; margin-bottom:8px; }
+    .input-icon { background: rgba(0,0,0,0.03); border-left:0; color:var(--muted); }
+
+    .btn-brown {
+        background: var(--brand-brown);
+        color: var(--brand-gold);
+        border-radius: 6px;
+        border: 0;
+        padding: .5rem .9rem;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+    }
+
+    .btn-brown-outline {
+        background: transparent;
+        color: var(--brand-brown);
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 6px;
+        padding: .45rem .9rem;
+    }
+
+    .selected-badge {
+        background: var(--brand-brown);
+        color: var(--brand-gold);
+        padding: .35rem .7rem;
+        border-radius: 6px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        font-weight:600;
+    }
+
+    .time-slot {
+        width: 100%;
+        border-radius: 6px;
+        padding: 8px 6px;
+        background: #fff;
+        color: var(--brand-brown);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .time-slot.selected {
+        background: linear-gradient(90deg,var(--brand-brown),#6a3e00);
+        color: var(--brand-gold);
+        border: none;
+    }
+
+    .section { color: var(--muted); font-weight:600; margin-bottom:6px; }
+
+    /* spacing tweaks */
+    .page-card { margin-top: 4px; }
+    .panel .panel-body .form-text { color: rgba(0,0,0,0.45); }
+</style>
+
+@section Scripts {
+    <script>
+        // keep original JS logic (uses same IDs/classes)
+        document.addEventListener('DOMContentLoaded', function () {
+            const eventDateInput = document.getElementById('eventDate');
+            const eventTimeInput = document.getElementById('eventTime');
+            const conflictWarning = document.getElementById('conflictWarning');
+            const timeSlotButtons = document.querySelectorAll('.time-slot');
+            const selectedTimesInput = document.getElementById('selectedTimes');
+            const selectedCountSpan = document.getElementById('selectedCount');
+            const selectedBadge = document.getElementById('selectedBadge');
+            const scheduleForm = document.getElementById('scheduleForm');
+
+            let availableSet = new Set();
+            let selectedSet = new Set();
+
+            function refreshSelections() {
+                const timesArray = Array.from(selectedSet).sort();
+                selectedTimesInput.value = timesArray.join(',');
+                // update the visible count
+                if (selectedCountSpan) {
+                    selectedCountSpan.textContent = timesArray.length;
+                }
+                // keep the badge consistent (in case markup changes)
+                if (selectedBadge) {
+                    selectedBadge.innerHTML = `Selected: <span id="selectedCount">${timesArray.length}</span>`;
+                }
+            }
+
+            timeSlotButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    if (button.classList.contains('unavailable')) {
+                        conflictWarning.classList.remove('d-none');
+                        setTimeout(() => conflictWarning.classList.add('d-none'), 2500);
+                        return;
+                    }
+                    const timeValue = this.getAttribute('data-time');
+                    if (this.classList.contains('selected')) {
+                        this.classList.remove('selected');
+                        selectedSet.delete(timeValue);
+                    } else {
+                        this.classList.add('selected');
+                        selectedSet.add(timeValue);
+                    }
+                    refreshSelections();
+                });
+            });
+
+            // preserve existing server-side hooks for fetching available slots
+            eventDateInput?.addEventListener('change', fetchAvailableSlotsAndSync);
+            fetchAvailableSlotsAndSync();
+
+            function fetchAvailableSlotsAndSync() {
+                const date = eventDateInput.value;
+                availableSet = new Set();
+                if (!date) {
+                    timeSlotButtons.forEach(btn => { btn.classList.add('disabled'); btn.setAttribute('disabled','disabled'); });
+                    return;
+                }
+                fetch(`/TodaySchedules/GetAvailableSlots?date=${encodeURIComponent(date)}`)
+                    .then(res => res.ok ? res.json() : Promise.reject())
+                    .then(data => {
+                        const values = Array.isArray(data) ? data.map(x => (x.Value ?? x.value ?? x)) : [];
+                        availableSet = new Set(values.filter(v => v));
+                        timeSlotButtons.forEach(btn => {
+                            const t = btn.getAttribute('data-time');
+                            btn.classList.remove('unavailable');
+                            btn.removeAttribute('disabled');
+                            if (availableSet.size > 0 && !availableSet.has(t)) {
+                                btn.classList.add('unavailable');
+                                btn.setAttribute('disabled', 'disabled');
+                                btn.classList.remove('selected');
+                            }
+                        });
+                        // remove deselected times
+                        Array.from(selectedSet).forEach(t => { if (availableSet.size && !availableSet.has(t)) selectedSet.delete(t); });
+                        timeSlotButtons.forEach(btn => btn.classList.toggle('selected', selectedSet.has(btn.getAttribute('data-time'))));
+                        refreshSelections();
+                    })
+                    .catch(() => {
+                        timeSlotButtons.forEach(btn => { btn.classList.remove('unavailable'); btn.removeAttribute('disabled'); });
+                    });
+            }
+
+            scheduleForm?.addEventListener('submit', function (e) {
+                const csv = selectedTimesInput.value;
+                if (!csv || csv.trim() === '') {
+                    e.preventDefault();
+                    alert('Please select at least one time slot before submitting.');
+                    return false;
+                }
+                if (!eventDateInput.value) {
+                    e.preventDefault();
+                    alert('Please choose an Event Date.');
+                    return false;
+                }
+                return true;
+            });
+
+            eventTimeInput?.addEventListener('change', function () {
+                const val = eventTimeInput.value;
+                selectedSet.clear();
+                if (val) {
+                    if (!availableSet.size || availableSet.has(val)) {
+                        selectedSet.add(val);
+                    } else {
+                        conflictWarning.classList.remove('d-none');
+                        setTimeout(() => conflictWarning.classList.add('d-none'), 2500);
+                    }
+                }
+                timeSlotButtons.forEach(btn => btn.classList.toggle('selected', selectedSet.has(btn.getAttribute('data-time'))));
+                refreshSelections();
+            });
+        });
+    </script>
+
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

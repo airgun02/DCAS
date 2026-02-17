@@ -1,0 +1,471 @@
+﻿@model DCAS.Models.PersonInfo
+@{
+    ViewData["Title"] = "Schedule";
+    var dates = (List<DateTime>)ViewBag.Dates; // Current page dates
+    var allDates = (List<DateTime>)ViewBag.AllDates ?? dates; // All dates for calculations
+    var times = (List<TimeSpan>)ViewBag.Times;
+    var schedule = (Dictionary<TimeSpan, Dictionary<DateTime, string>>)ViewBag.ScheduleMap;
+    var medicalServices = ViewBag.MedicalServices as List<SelectListItem>;
+    var message = ViewBag.Message as string;
+    
+    // Pagination logic
+    var pageSize = 5;
+    var currentPage = ViewBag.CurrentPage ?? 0;
+    var totalPages = allDates != null ? (int)Math.Ceiling((double)allDates.Count / pageSize) : 0;
+    var displayDates = dates ?? new List<DateTime>(); // dates already contains current page items
+    var hasPrevious = currentPage > 0;
+    var hasNext = currentPage < totalPages - 1;
+}
+<style>
+    /* Theme colors */
+    :root {
+        --brown: #7A4B00;
+        --brown-dark: #8a5503;
+        --muted: #6c6c6c;
+        --light-brown: #DACBAE;
+    }
+
+    /* Top title header */
+    .today-header {
+        background: var(--brown);
+        color: white;
+        padding: 14px 20px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 2px 0 rgba(0,0,0,0.06) inset;
+    }
+    .today-header i {
+        font-size: 20px;
+        background: rgba(255,255,255,0.1);
+        padding: 8px;
+        border-radius: 6px;
+    }
+    .today-header h2 {
+        margin: 0;
+        font-weight: 500;
+        font-size: 1.15rem;
+    }
+
+    /* Card wrapper that contains content */
+    .today-card {
+        background: white;
+        border-radius: 8px;
+        margin: 16px 0;
+        box-shadow: 0 6px 14px rgba(0,0,0,0.08);
+        overflow: visible;
+        border: 1px solid rgba(166,107,5,0.08);
+    }
+
+    /* Spacing container inside the card */
+    .today-card .card-body-custom {
+        padding: 48px 40px;
+        min-height: 260px;
+    }
+
+    /* Add button styles */
+    .btn-brown {
+        background-color: var(--brown);
+        color: #fff;
+        border: none;
+        box-shadow: 0 3px 0 rgba(0,0,0,0.12);
+        padding: 10px 18px;
+        border-radius: 6px;
+    }
+    .btn-brown:hover {
+        background-color: var(--brown-dark);
+        color: #fff;
+    }
+
+    /* Empty state styles */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        text-align: center;
+        color: var(--muted);
+    }
+    .empty-state .icon {
+        font-size: 64px;
+        color: var(--brown);
+    }
+    .empty-state h3 {
+        color: var(--brown-dark);
+        font-weight: 500;
+        margin: 0;
+        font-size: 1.8rem;
+    }
+    .empty-state p {
+        margin: 0;
+        color: var(--muted);
+    }
+
+    /* Keep existing schedule slot styling but avoid conflicts */
+    .status-action-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .scheduled-slot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        border-left: 5px solid #007bff;
+        flex-wrap: wrap;
+    }
+
+    .scheduled-slot .slot-left {
+        flex: 1 1 auto;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .table td {
+        vertical-align: middle;
+        min-height: 60px;
+    }
+
+    .thead-dark th {
+        border-color: #495057;
+        background-color: var(--brown);
+        color: white; 
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0,123,255,.03);
+    }
+
+    .date-navigation {
+        display: flex;
+        align-items: center;
+        gap: 10px;   }
+
+    .date-navigation .btn {
+        min-width: 80px;
+        background: var(--light-brown)
+    }
+
+    .btn.disabled, .btn:disabled, fieldset:disabled .btn {
+        color: var(--brown);
+    }
+
+    .button-add{
+        padding: 5px 15px;
+        max-width: fit-content;
+    }
+    .card-header {
+        background-color: #7A4B00;
+    }
+
+    .mb-0 {
+        color:white
+    }
+
+    /* Responsive */
+    @@media (max-width: 576px) {
+        .today-card .card-body-custom {
+            padding: 24px;
+        }
+        .today-header { padding: 12px; }
+        .today-header h2 { font-size: 1rem; }
+    }
+</style>
+
+<div>
+    <div class="today-header">
+        <i class="fas fa-calendar"></i>
+        <h2>Today's Schedules</h2>
+    </div>
+
+    <div class="today-card">
+        <div class="card-body-custom">
+            <div class="mb-3">
+                <a asp-action="Create" class="btn btn-brown">
+                    <i class="fas fa-plus"></i> &nbsp; Add New Schedule
+                </a>
+            </div>
+
+            @if (displayDates.Any() && times.Any())
+            {
+                <!-- Navigation Controls -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="date-navigation">
+                        @if (hasPrevious)
+                        {
+                            <a asp-action="Index" asp-route-page="@(currentPage - 1)" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" disabled>
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </button>
+                        }
+                        
+                        <span class="mx-3 text-muted">
+                            Page @(currentPage + 1) of @totalPages (@(displayDates.Count) of @(allDates.Count) dates)
+                        </span>
+                        
+                        @if (hasNext)
+                        {
+                            <a asp-action="Index" asp-route-page="@(currentPage + 1)" class="btn btn-outline-secondary btn-sm">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" disabled>
+                                Next <i class="fas fa-chevron-right"></i>
+                            </button>
+                        }
+                    </div>
+                    
+                    <!-- Date Range Display -->
+                    <div class="text-muted">
+                        @if (displayDates.Any())
+                        {
+                            <small>
+                                Showing: @displayDates.First().ToString("MMM dd") - @displayDates.Last().ToString("MMM dd, yyyy")
+                            </small>
+                        }
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th class="text-center" style="width: 120px;">Time</th>
+                                @foreach (var date in displayDates)
+                                {
+                                    <th class="text-center">
+                                        @date.ToString("ddd")
+                                        <br />
+                                        <small>@date.ToString("MM/dd/yy")</small>
+                                    </th>
+                                    <th style="width: 120px; text-align: left; padding-left: 32px;">Status</th>
+                                }
+                            </tr>
+                        </thead>
+                    <tbody>
+                        @foreach (var time in times)
+                        {
+                            <tr>
+                                <td class="font-weight-bold text-center align-middle bg-light">
+                                    @DateTime.Today.Add(time).ToString("h:mm tt")
+                                </td>
+                                @foreach (var date in displayDates)
+                                {
+                                    // --- Keep your existing Logic Block ---
+                                    var personName = schedule.ContainsKey(time) && schedule[time].ContainsKey(date)
+                                    ? schedule[time][date] : "Time Slots";
+                                    var isAvailable = personName == "Time Slots";
+                                    var db = ViewContext.HttpContext.RequestServices.GetService(typeof(DCAS.Data.DCASContext)) as DCAS.Data.DCASContext;
+                                    var scheduleEntry = db?.TodaySchedule.FirstOrDefault(s => s.EventDate.Date == date.Date && s.EventTime == time);
+                                    // --------------------------------------
+
+                                    <td class="text-center align-middle">
+                                        @if (isAvailable)
+                                        {
+                                            <span class="text-muted"><i class="fas fa-calendar-plus"></i> Time Slots</span>
+                                        }
+                                        else
+                                        {
+                                            <div class="slot-left">
+                                                <strong class="text-primary">@((scheduleEntry?.PersonName) ?? "—")</strong>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td class="text-center align-middle" style="width: 250px;">
+                                        @if (!isAvailable)
+                                        {
+                                            <div class="status-action-container">
+
+                                                <div class="status-badge-wrapper">
+                                                    <span class="badge rounded-pill bg-light text-dark border schedule-status"
+                                                          data-schedule-id="@(scheduleEntry?.Id ?? 0)">
+                                                        @((scheduleEntry?.Status) ?? "Waiting")
+                                                    </span>
+                                                </div>
+
+                                                <div class="btn-group btn-group-sm">
+                                                    <button type="button"
+                                                            class="btn btn-sm btn-outline-primary btn-update-schedule"
+                                                            data-schedule-id="@(scheduleEntry?.Id ?? 0)"
+                                                            data-person-name="@(scheduleEntry?.PersonName ?? String.Empty)">
+                                                        Update
+                                                    </button>
+                                                    <a asp-controller="Reschedules"
+                                                       asp-action="Index"
+                                                       asp-route-q="@(scheduleEntry?.PersonName ?? string.Empty)"
+                                                       class="btn btn-sm btn-outline-secondary">
+                                                        Profile
+                                                    </a>
+                                                </div>
+
+                                            </div>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Schedule Summary</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Total Time Slots:</strong>  @schedule.Values.SelectMany(d => d.Values).Count(v => v == "Time Slots")</p>
+                                    <p><strong>Scheduled:</strong> @schedule.Values.SelectMany(d => d.Values).Count(v => v != "Time Slots" && v != "Available Slots")</p>
+                                    <p><strong>Available Slots:</strong> @schedule.Values.SelectMany(d => d.Values).Count(v => v == "Available Slots")</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Legend</h5>
+                                </div>
+                                <div class="card-body">
+                                    <p>
+                                        <i class="fas fa-calendar-plus text-muted"></i>
+                                        <span class="text-muted"> Available Slot ( No Person Name )</span>
+                                    </p>
+                                    <p>
+                                        <i class="fas fa-calendar-plus text-muted"></i>
+                                        <span class="text-muted"> Available Time ( Have Time Slot )</span>
+                                    </p>
+                                    <p>
+                                        <span class="scheduled-slot d-inline-block" style="border-left: 5px solid #007bff; padding: 4px 8px; background-color: #f8f9fa;">
+                                            <strong class="text-primary">Person Name</strong>
+                                        </span> - Occupied Slot
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-calendar-alt icon"></i>
+                    <h3>No Schedules Yet</h3>
+                    <p>Get started by creating your first schedule entry</p>
+                    <a asp-action="Create" class="btn btn-brown btn-lg">
+                        <i class="fas fa-plus"></i> &nbsp; Create First Schedule
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+  const paymentsIndexUrl = '@Url.Action("Index","Payments")';
+
+  async function fetchServices() {
+    try {
+      const r = await fetch('/AppointmentRegister/GetServices');
+      if (!r.ok) return [];
+      return await r.json();
+    } catch { return []; }
+  }
+
+  function pickService(person, services) {
+    const current = (person?.medicalServices || '').trim();
+    if (current && current.toLowerCase() !== 'n/a') return current;          // use existing if valid
+    if (Array.isArray(services) && services.length) return services[0].Value; // fallback to first
+    return 'N/A'; // final fallback to avoid throwing
+  }
+
+  async function autoQuickUpdate(person, scheduleId, inlineServices) {
+    if (!person?.id) throw new Error('No patient found');
+
+    let services = Array.isArray(inlineServices) ? inlineServices : [];
+    if (!services.length) services = await fetchServices();
+
+    const medicalServices = pickService(person, services);
+    // do NOT throw if 'N/A' — allow update to proceed
+    const payload = { id: person.id, name: person.name || '', medicalServices };
+
+    const res = await fetch('/AppointmentRegister/QuickUpdate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+    const data = await res.json();
+    if (!data?.success) throw new Error(data?.error || 'Update failed');
+
+    // update name in UI
+    if (scheduleId && payload.name) {
+      const tile = document.querySelector('.btn-update-schedule[data-schedule-id="' + scheduleId + '"]');
+      const nameNode = tile?.closest('.scheduled-slot')?.querySelector('strong.text-primary');
+      if (nameNode) nameNode.textContent = payload.name;
+    }
+
+    alert('Saved successfully');
+    setTimeout(() => { window.location.href = paymentsIndexUrl; }, 300);
+  }
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.btn-update-schedule');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.scheduleId || '0', 10);
+    if (!id) return;
+
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = '...';
+
+    try {
+      const res = await fetch('/AppointmentRegister/ToggleScheduleStatus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduleId: id })
+      });
+      if (!res.ok) throw new Error('Network error');
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || 'Unknown');
+
+      const statusEl = document.querySelector('.schedule-status[data-schedule-id="' + data.scheduleId + '"]');
+      if (statusEl) statusEl.textContent = data.status;
+
+      // call only once when a payment was actually created (i.e., status reached Done)
+      if (data.paymentCreated) {
+        await autoQuickUpdate(data.person, data.scheduleId, data.services);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error: ' + (err.message || err));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+})();
+</script>
+
+
+
+
+

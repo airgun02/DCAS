@@ -1,0 +1,71 @@
+﻿@model DCAS.Models.Users
+
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container mt-4">
+    <h1 class="text-center">My Profile</h1>
+    <hr />
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-center border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    Profile
+                </div>
+                <div class="card-body">
+                    <img id="profile-image" class="img-thumbnail rounded-circle mb-3 border border-warning" alt="Profile Image" src="@Url.Action("GetImage", "Users", new { id = Model.UsersId })" />
+                    <h5 id="profile-name-full" class="fw-bold text-dark">@Model.Name</h5>
+                    <p><b>Username:</b> <small id="profile-username">@Model.Username</small></p>
+                    <hr />
+                    <p><i class="bi bi-envelope text-warning"></i> <b>Email:</b> <span id="profile-email">@Model.Email</span></p>
+                    <p><i class="bi bi-telephone text-warning"></i> <b>Contact:</b> <span id="profile-phonenumber">@Model.PhoneNumber</span></p>
+                    <p><i class="bi bi-geo-alt text-warning"></i> <b>Nationality:</b> <span id="profile-nationality">@Model.Nationality</span></p>
+                    <p><i class="bi bi-person text-warning"></i> <b>Age:</b> <span id="profile-age">@Model.Age</span></p>
+                    <p><i class="bi bi-calendar text-warning"></i> <b>BirthDate:</b> <span id="profile-birthdate">@Model.BirthDate</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <ul class="nav nav-tabs bg-warning p-2 rounded" id="profileTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active text-dark fw-bold" data-bs-toggle="tab" href="#personal">Personal Info</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark fw-bold" data-bs-toggle="tab" href="#address">Home Address</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark fw-bold" data-bs-toggle="tab" href="#schedule">Working Schedule</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-dark fw-bold" data-bs-toggle="tab" href="#safety">Health & Safety</a>
+                </li>
+            </ul>
+
+            <div class="tab-content border border-warning rounded-bottom p-3 bg-white shadow-sm">
+                <div class="tab-pane fade show active" id="personal">
+                    <p><strong>Job Title:</strong> <span id="profile-jobtitle-badge" class="badge bg-warning text-dark">@Model.JobTitle</span></p>
+                    <p><strong>Start Date:</strong> <span id="profile-startdate">@Model.StartDate</span></p>
+                    <p><strong>Specialization:</strong> <span id="profile-specialization">@Model.Specialization</span></p>
+                </div>
+
+                <div class="tab-pane fade" id="address">
+                    <p><strong>Address:</strong> <span id="profile-address">@Model.Address</span></p>
+                    <p><strong>City:</strong> <span id="profile-city">City</span></p>
+                    <p><strong>Postal Code:</strong> <span id="profile-postalcode">PostalCode</span></p>
+                </div>
+
+                <div class="tab-pane fade" id="schedule">
+                    <p><strong>Position:</strong> <span id="profile-position">@Model.Position</span></p>
+                    <p><strong>Work Status:</strong> <span id="profile-workstatus">@Model.WorkStatus</span></p>
+                    <p><strong>Total Weekly Hours:</strong> 40</p>
+                </div>
+
+                <div class="tab-pane fade" id="safety">
+                    <p><strong>Licenses:</strong> CPR / BLS Certification, Dental Implants</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

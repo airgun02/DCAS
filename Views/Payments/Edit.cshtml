@@ -1,0 +1,393 @@
+﻿@model DCAS.Models.Payment
+@{
+    ViewData["Title"] = "Edit";
+    var services = ViewBag.Services as List<DCAS.Models.Services> ?? new List<DCAS.Models.Services>();
+    var selectedServices = ViewBag.SelectedServiceIds as IEnumerable<int> ?? Enumerable.Empty<int>();
+    var medicineInventory = ViewBag.MedicineInventory as List<DCAS.Models.MedicineInventory> ?? new List<DCAS.Models.MedicineInventory>();
+}
+
+<style>
+    .card-header {
+        max-width: fit-content;
+        width: auto;
+        padding: 5px 15px;
+        background-color: #E5D9D9;
+        margin: -15 auto;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        padding: 5px 0;
+        color: #B28989;
+    }
+    .card-payment {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border-radius: 12px;
+    }
+
+    .card-payment:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .form-section-title {
+        border-bottom: 2px solid #E5D9D9;
+        padding-bottom: 5px;
+        margin-bottom: 20px;
+        color: #B28989;
+    }
+    .btn-pay,.btn-add{
+        background-color: #B28989;
+        color: white;
+    }
+</style>
+
+<!-- Bootstrap Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i> Transaction Successful!
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header text-black">
+        <h2 class="mb-0">
+            <i class="fas fa-peso-sign"></i> Pay
+        </h2>
+    </div>
+    <div class="m-5 mt-5">
+<form asp-action="Edit">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <input type="hidden" asp-for="PaymentId" />
+    <input type="hidden" asp-for="PersonInfoId" />
+    <input type="hidden" asp-for="Status" />
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card card-payment h-100 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title form-section-title">Payment Details</h4>
+
+                    <!-- Reordered: DoctorName -> DentistFee -> Services -> ServicePrice -> PaymentMethod -> Cash -->
+
+                    <div class="form-group mb-3">
+                        <label asp-for="DoctorName" class="control-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user-md"></i></span>
+                            <input asp-for="DoctorName" class="form-control" />
+                        </div>
+                        <span asp-validation-for="DoctorName" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="DentistFee" class="control-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-tooth"></i></span>
+                            <input asp-for="DentistFee" class="form-control" id="DentistFee" oninput="calculateTotal()" />
+                        </div>
+                        <span asp-validation-for="DentistFee" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="control-label">Services</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-first-aid"></i></span>
+                            <select id="ServicesIds" name="servicesIds" class="form-control" multiple size="4" onchange="calculateTotal()">
+                                @foreach (var svc in services)
+                                {
+                                    if (selectedServices.Contains(svc.Id))
+                                    {
+                                        <option value="@svc.Id" selected="selected">
+                                            @svc.MedicalNameService (@svc.Price.ToString("N2"))
+                                        </option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@svc.Id">
+                                            @svc.MedicalNameService (@svc.Price.ToString("N2"))
+                                        </option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <small class="text-muted">You can select multiple services (Ctrl/Cmd + click).</small>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="ServicePrice" class="control-label">Service Price (Total)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                            <input type="text" class="form-control" id="ServicePrice" readonly />
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="PaymentMethod" class="control-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-credit-card"></i></span>
+                            <input asp-for="PaymentMethod" id="PaymentMethod" class="form-control" />
+                        </div>
+                        <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Cash" class="control-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-money-bill-wave"></i></span>
+                            <input asp-for="Cash" class="form-control" id="Cash" oninput="calculateTotal()" />
+                        </div>
+                        <span asp-validation-for="Cash" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                                <label asp-for="PaymentDate" class="control-label">Payment Date</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+
+                                    <input asp-for="PaymentDate"
+                                           class="form-control"
+                                           type="date"
+                                           id="PaymentDate"
+                                           value="@(Model.PaymentDate.Year > 1 ? Model.PaymentDate.ToString("yyyy-MM-dd") : DateTime.Today.ToString("yyyy-MM-dd"))"
+                                           readonly />
+                                </div>
+                                <span asp-validation-for="PaymentDate" class="text-danger"></span>
+                            </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card card-payment h-100 shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title form-section-title">Medicine Management</h4>
+
+                    <h5>Available Medicines</h5>
+                    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover">
+                            <thead class="sticky-top bg-light">
+                                <tr>
+                                    <th>Medicine</th>
+                                    <th>Price</th>
+                                    <th>Stock</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var medicine in medicineInventory)
+                                {
+                                    <tr>
+                                        <td>@medicine.MedicineName</td>
+                                        <td>@medicine.Price.ToString("N2")</td>
+                                        <td>@medicine.Quantity</td>
+                                        <td>
+                                            @if (medicine.Quantity <= 0)
+                                            {
+                                                <button type="button" class="btn btn-secondary btn-sm" disabled title="Out of stock">Out of stock</button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn btn-add btn-sm" onclick="addMedicine(@medicine.Id, '@medicine.MedicineName', @medicine.Price, @medicine.Quantity)">Add</button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                            <h5 class="mt-4">Medicines Added to Payment</h5>
+                            <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+                                <table class="table table-bordered table-striped">
+                                    <thead class="sticky-top bg-light">
+                                        <tr>
+                                            <th>Medicine</th>
+                                            <th>Unit Price</th>
+                                            <th>Qty</th>
+                                            <th>Subtotal</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="added-medicines-table-body">
+                                    </tbody>
+                                </table>
+                            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card card-payment shadow-sm">
+                <div class="card-body">
+                    <h4 class="card-title form-section-title">Final Summary</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="AmountPaid" class="control-label">Total Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-file-invoice-dollar"></i></span>
+                                    <input asp-for="AmountPaid" class="form-control" id="AmountPaid" readonly />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="AmountChanged" class="control-label">Change</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-money-bill-alt"></i></span>
+                                    <input asp-for="AmountChanged" class="form-control" id="AmountChanged" readonly />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-pay btn-lg mt-3"><i class="fas fa-peso-sign"></i> Pay</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</form>
+
+<div class="mt-4">
+    <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+</div>
+</div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        const servicesData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(services));
+        const medicinesData = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(medicineInventory ?? []));
+
+        function parsePrice(num) { return parseFloat(num) || 0; }
+
+        function getSelectedServiceTotal() {
+            const sel = document.getElementById("ServicesIds");
+            if (!sel) return 0;
+            let total = 0;
+            Array.from(sel.selectedOptions).forEach(opt => {
+                const svcId = parseInt(opt.value, 10);
+                const svc = servicesData.find(s => s.Id === svcId || s.id === svcId);
+                if (svc) total += parsePrice(svc.Price ?? svc.price);
+            });
+            return total;
+        }
+
+        function calculateTotal() {
+            const serviceTotal = getSelectedServiceTotal();
+            document.getElementById("ServicePrice").value = serviceTotal.toFixed(2);
+
+            let totalMedicinePrice = 0;
+            document.querySelectorAll('#added-medicines-table-body .medicine-subtotal').forEach(subCell => {
+                totalMedicinePrice += parsePrice(subCell.textContent);
+            });
+
+            const dentistFee = parsePrice(document.getElementById("DentistFee").value);
+            const cash = parsePrice(document.getElementById("Cash").value);
+
+            const total = serviceTotal + dentistFee + totalMedicinePrice;
+            document.getElementById("AmountPaid").value = total.toFixed(2);
+            document.getElementById("AmountChanged").value = (cash - total).toFixed(2);
+        }
+
+        function onQtyChange(qInput) {
+            const row = qInput.closest('tr');
+            const price = parsePrice(row.querySelector('.medicine-price').textContent);
+            const max = parseInt(qInput.getAttribute('max')) || Infinity;
+            let qty = Math.max(1, parseInt(qInput.value, 10) || 1);
+            if (qty > max) {
+                qty = max;
+                qInput.value = qty;
+                alert('Quantity reduced to available stock.');
+            }
+            const subtotal = price * qty;
+            row.querySelector('.medicine-subtotal').textContent = subtotal.toFixed(2);
+
+            qInput.value = qty;
+
+            calculateTotal();
+        }
+
+        function addMedicine(id, name, price, stock) {
+            // Defensive: do not add when stock is zero or negative
+            if (!stock || stock <= 0) {
+                alert('This medicine is out of stock and cannot be added.');
+                return;
+            }
+
+            const tableBody = document.getElementById('added-medicines-table-body');
+            const hiddenInputName = "MedicineId";
+            // prevent duplicates
+            if (document.querySelector(`input[name='${hiddenInputName}'][value='${id}']`)) {
+                alert("Medicine is already added.");
+                return;
+            }
+            const defaultQty = 1;
+            const qtyAllowed = Math.min(defaultQty, stock);
+            const subtotal = price * qtyAllowed;
+
+            const newRow = document.createElement('tr');
+            newRow.innerHTML = `
+                <td>${name}</td>
+                <td class="medicine-price">${price.toFixed(2)}</td>
+                <td>
+                    <input type="number" name="MedicineQuantity" value="${qtyAllowed}" min="1" max="${stock}" class="form-control form-control-sm" style="width:80px;" onchange="onQtyChange(this)" />
+                </td>
+                <td class="medicine-subtotal">${subtotal.toFixed(2)}</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeMedicine(this)">Remove</button>
+                    <input type="hidden" name="${hiddenInputName}" value="${id}" />
+                </td>`;
+            tableBody.appendChild(newRow);
+            calculateTotal();
+        }
+
+        function removeMedicine(button) {
+            button.closest('tr').remove();
+            calculateTotal();
+        }
+
+        // preload any existing medicines from model.PaymentMedicine
+        function addExistingMedicines() {
+            const existing = @Html.Raw(
+                Newtonsoft.Json.JsonConvert.SerializeObject(
+                    Model.PaymentMedicine ?? Enumerable.Empty<DCAS.Models.PaymentMedicine>()
+                )
+            );
+            existing.forEach(m => {
+                // m may include MedicineId and Quantity after model update
+                const id = m.MedicineId || 0;
+                const qty = m.Quantity || 1;
+                const name = m.MedicineName || '';
+                const unitPrice = parsePrice(m.UnitPrice ?? m.Price);
+                // temporarily add row and set quantity/subtotal (stock unknown here)
+                addMedicine(id, name, unitPrice, 99999);
+                // set quantity for the last added row
+                const rows = document.querySelectorAll('#added-medicines-table-body tr');
+                const last = rows[rows.length - 1];
+                if (last) {
+                    const qtyInput = last.querySelector("input[name='MedicineQuantity']");
+                    if (qtyInput) {
+                        qtyInput.value = qty;
+                        onQtyChange(qtyInput);
+                    }
+                }
+            });
+        }
+
+        window.onload = function () {
+            addExistingMedicines();
+            calculateTotal();
+        };
+    </script>
+}

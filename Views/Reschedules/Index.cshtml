@@ -1,0 +1,737 @@
+﻿@model IEnumerable<DCAS.Models.PersonInfo>
+
+@{
+    ViewData["Title"] = "Person Info Index";
+}
+<style>
+    /* Layout tweaks for a cleaner, compact Reschedules list */
+    .card-header {
+        padding: 12px 18px;
+        background-color: #7A4B00;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        color: white;
+        font-weight: 600;
+        font-size: 1.25rem;
+        display:flex;
+        align-items:center;
+        gap:0.5rem;
+    }
+
+    .fas{
+        color:white;
+    }
+
+    .modal-header{
+        background-color: #7A4B00;
+    }
+
+    .modal-title{
+     color:white;
+    }
+    /* Compact table spacing */
+    .table-compact th,
+    .table-compact td {
+        padding: .55rem .7rem;
+        vertical-align: middle;
+        border-top: 1px solid #e9e9e9;
+        white-space: nowrap;
+    }
+
+    /* Slightly lighter header */
+    .table-compact thead th {
+        background: #DACBAE;
+        border-bottom: 2px solid #eee;
+        color: #333;
+    }
+
+    /* alternate row shading for readability */
+    .table-compact tbody tr:nth-child(odd) {
+        background: #ffffff;
+    }
+    .table-compact tbody tr:nth-child(even) {
+        background: #fbfbfb;
+    }
+
+    /* badge */
+    .status-badge { font-size: .78rem; padding: .28rem .55rem; border-radius: .375rem; }
+
+    /* actions dropdown small */
+    .actions-dropdown .dropdown-toggle {
+        padding: .3rem .5rem;
+        font-size: .85rem;
+    }
+    .actions-dropdown .dropdown-menu { min-width: 10.5rem; }
+
+    /* keep table container responsive */
+    .table-responsive { overflow-x: auto; max-width: 100%; }
+
+    /* place search box inside header right area */
+    .search-box {
+        display:flex;
+        align-items:center;
+        gap:8px;
+    }
+    .search-box input {
+        width: 320px;
+        max-width: 40vw;
+    }
+
+    @@media (max-width: 900px) {
+        .search-box input { width: 180px; max-width: 45vw; }
+        .table-compact th:nth-child(6),
+        .table-compact td:nth-child(6) { display:none; } /* hide email on small screens */
+    }
+
+    /* custom buttons for Reschedules page */
+    .btn-save {
+      background: #0d6efd; /* your hex */
+      border-color: #0d6efd;
+      color: #fff;
+    }
+    .btn-save:hover { background: #0b5ed7; border-color: #0a58ca; }
+
+    .btn-reschedule {
+      background: #198754; /* your hex */
+      border-color: #198754;
+      color: #fff;
+    }
+    .btn-reschedule:hover { background: #157347; border-color: #146c43; }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h2><i class="fas fa-edit"></i> Update Information / Reschedules</h2>
+
+        <div class="search-box">
+            <input id="searchBox" name="q" value="@(ViewBag.Query ?? "")"
+                   class="form-control form-control-sm" placeholder="Search name, mobile or email" />
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-compact mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:1%">#</th>
+                        <th style="min-width:160px">Name</th>
+                        <th style="width:110px">Date Of Visit</th>
+                        <th style="width:60px">Age</th>
+                        <th style="min-width:120px">Mobile</th>
+                        <th style="min-width:160px">Email</th>
+                        <th style="width:110px">Status</th>
+                        <th style="min-width:140px">Schedule</th>
+                        <th style="width:90px">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 1;
+                        foreach (var item in Model)
+                        {
+                            // Keep marital Status empty when it equals WalkInStatus (project rule)
+                            var displayStatus = "";
+                            if (!string.IsNullOrWhiteSpace(item.Status))
+                            {
+                                var s = item.Status.Trim();
+                                var walkin = item.WalkInStatus?.Trim() ?? "";
+                                if (!s.Equals("Pre-register", StringComparison.OrdinalIgnoreCase)
+                                    && !s.Equals("Registered", StringComparison.OrdinalIgnoreCase)
+                                    && !s.Equals(walkin, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    displayStatus = s;
+                                }
+                            }
+
+                            var scheduleText = string.IsNullOrWhiteSpace(item.AvailableDay) ? "" : $"{item.AvailableDay}";
+                            if (!string.IsNullOrWhiteSpace(item.AvailableTime)) scheduleText += (scheduleText == "" ? "" : " ") + item.AvailableTime;
+                        <tr data-id="@item.Id">
+                            <td>@idx</td>
+                            <td><strong>@(item.Name ?? "\u2014")</strong></td>
+                            <td>@(item.Date?.ToString("MM-dd-yyyy") ?? "\u2014")</td>
+                            <td>@(item.Age ?? 0)</td>
+                            <td>@(item.MobileNumber ?? "\u2014")</td>
+                            <td>@(item.EmailAddress ?? "\u2014")</td>
+                            <td>@(string.IsNullOrWhiteSpace(displayStatus) ? "\u2014" : displayStatus)</td>
+                            <td>@(string.IsNullOrWhiteSpace(scheduleText) ? "\u2014" : scheduleText)</td>
+                            <td>
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="actionsMenu@item.Id" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Actions
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu@item.Id">
+                                        <li><a class="dropdown-item action-update" href="#" data-id="@item.Id">Update</a></li>
+                                        <li><a class="dropdown-item action-details" href="#" data-id="@item.Id">View Details</a></li>
+                                        <li><a class="dropdown-item action-reschedule" href="#" data-id="@item.Id">Reschedule</a></li>
+                                        <li><hr class="dropdown-divider" /></li>
+                                        <li><a class="dropdown-item" href="@Url.Action("PatientHistory", "Payments", new { personId = item.Id })">Patient History</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                            idx++;
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">No registered clients found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Update Modal -->
+<div class="modal fade" id="updateModal" tabindex="-1" role="dialog" aria-labelledby="updateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <form id="updateForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="updateModalLabel">Update Person Info</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <input type="hidden" id="Id" name="Id" />
+
+                    <div class="col-md-6">
+                        <label for="Name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="Name" name="Name" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="HomeAddress" class="form-label">Home Address</label>
+                        <input type="text" class="form-control" id="HomeAddress" name="HomeAddress" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="Date" class="form-label">Date Of Visit</label>
+                        <input type="date" class="form-control" id="Date" name="Date" readonly/>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="BirthDay" class="form-label">Birthday</label>
+                        <input type="date" class="form-control" id="BirthDay" name="BirthDay" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="Age" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="Age" name="Age" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="HomeNumber" class="form-label">Home Number</label>
+                        <input type="text" class="form-control" id="HomeNumber" name="HomeNumber" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="Occupation" class="form-label">Occupation</label>
+                        <input type="text" class="form-control" id="Occupation" name="Occupation" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="MobileNumber" class="form-label">Mobile Number</label>
+                        <input type="text" class="form-control" id="MobileNumber" name="MobileNumber"
+                               maxlength="11" minlength="11" pattern="\d{11}" inputmode="numeric" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="OfficeAddress" class="form-label">Office Address</label>
+                        <input type="text" class="form-control" id="OfficeAddress" name="OfficeAddress" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="EmailAddress" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="EmailAddress" name="EmailAddress" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="Status" class="form-label">Status</label>
+                        <select class="form-select" id="Status" name="Status">
+                            <option value="">-- Select civil status --</option>
+                            <option value="Single">Single</option>
+                            <option value="Married">Married</option>
+                            <option value="Divorced">Divorced</option>
+                            <option value="Widowed">Widowed</option>
+                        </select>
+                    </div>
+
+                    <!-- WalkInStatus removed from modal (invisible so DB value is preserved) -->
+
+                    <div class="col-md-6">
+                        <label for="NameOfSpouse" class="form-label">Name of Spouse</label>
+                        <input type="text" class="form-control" id="NameOfSpouse" name="NameOfSpouse" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="PersonalResponsibleforAccount" class="form-label">Responsible for Account</label>
+                        <input type="text" class="form-control" id="PersonalResponsibleforAccount" name="PersonalResponsibleforAccount" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="Relationship" class="form-label">Relationship</label>
+                        <input type="text" class="form-control" id="Relationship" name="Relationship" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="PhysicianCare" class="form-label">Physician Care</label>
+                        <input type="text" class="form-control" id="PhysicianCare" name="PhysicianCare" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="PhysicianName" class="form-label">Physician Name</label>
+                        <input type="text" class="form-control" id="PhysicianName" name="PhysicianName" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="ContactNumber" class="form-label">Physician Contact Number</label>
+                        <input type="text" class="form-control" id="ContactNumber" name="ContactNumber" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="AvailableDay" class="form-label">Available Day</label>
+                        <input type="text" class="form-control" id="AvailableDay" name="AvailableDay" readonly/>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="AvailableTime" class="form-label">Available Time</label>
+                        <input type="text" class="form-control" id="AvailableTime" name="AvailableTime" readonly />
+                    </div>
+                </div>
+                <!-- Update modal footer -->
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-save">Save changes</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal - Full Person Info -->
+<div class="modal fade" id="detailsModal" tabindex="-1" role="dialog" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">Person Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body row g-3">
+                <!-- Basic Info -->
+                <div class="col-md-6"><strong>Name:</strong> <span id="detailName"></span></div>
+                <div class="col-md-6"><strong>Home Address:</strong> <span id="detailHomeAddress"></span></div>
+                <div class="col-md-6"><strong>Date Of Visit:</strong> <span id="detailDate"></span></div>
+                <div class="col-md-6"><strong>Birthday:</strong> <span id="detailBirthDay"></span></div>
+                <div class="col-md-6"><strong>Age:</strong> <span id="detailAge"></span></div>
+                <div class="col-md-6"><strong>Home Number:</strong> <span id="detailHomeNumber"></span></div>
+                <div class="col-md-6"><strong>Occupation:</strong> <span id="detailOccupation"></span></div>
+                <div class="col-md-6"><strong>Mobile Number:</strong> <span id="detailMobileNumber"></span></div>
+                <div class="col-md-6"><strong>Office Address:</strong> <span id="detailOfficeAddress"></span></div>
+                <div class="col-md-6"><strong>Email Address:</strong> <span id="detailEmailAddress"></span></div>
+                <div class="col-md-6"><strong>Status:</strong> <span id="detailStatus"></span></div>
+                <div class="col-md-6"><strong>Walk-in Status:</strong> <span id="detailWalkInStatus"></span></div>
+                <div class="col-md-6"><strong>Name of Spouse:</strong> <span id="detailNameOfSpouse"></span></div>
+                <div class="col-md-6"><strong>Responsible for Account:</strong> <span id="detailPersonalResponsibleforAccount"></span></div>
+                <div class="col-md-6"><strong>Relationship:</strong> <span id="detailRelationship"></span></div>
+                <div class="col-md-6"><strong>Physician Care:</strong> <span id="detailPhysicianCare"></span></div>
+                <div class="col-md-6"><strong>Physician Name:</strong> <span id="detailPhysicianName"></span></div>
+                <div class="col-md-6"><strong>Physician Contact Number:</strong> <span id="detailContactNumber"></span></div>
+                <div class="col-md-6"><strong>Available Day:</strong> <span id="detailAvailableDay"></span></div>
+                <div class="col-md-6"><strong>Available Time:</strong> <span id="detailAvailableTime"></span></div>
+
+               @*  <!-- Extra Detail Fields -->
+                <div class="col-md-6"><strong>DetailOnee:</strong> <span id="detailDetailOnee"></span></div>
+                <div class="col-md-6"><strong>DetailTwoo:</strong> <span id="detailDetailTwoo"></span></div>
+                <div class="col-md-6"><strong>DetailOne:</strong> <span id="detailDetailOne"></span></div>
+                <div class="col-md-6"><strong>DetailTwo:</strong> <span id="detailDetailTwo"></span></div>
+                <div class="col-md-6"><strong>DetailThree:</strong> <span id="detailDetailThree"></span></div>
+                <div class="col-md-6"><strong>DetailFour:</strong> <span id="detailDetailFour"></span></div>
+                <div class="col-md-6"><strong>DetailFive:</strong> <span id="detailDetailFive"></span></div>
+                <div class="col-md-6"><strong>DetailSix:</strong> <span id="detailDetailSix"></span></div>
+                <div class="col-md-6"><strong>DetailSeven:</strong> <span id="detailDetailSeven"></span></div>
+                <div class="col-md-6"><strong>DetailEigth:</strong> <span id="detailDetailEigth"></span></div> *@
+            </div>
+
+            <div class="modal-footer">
+               @*  <button type="button" class="btn btn-button" id="openUpdateDetails">Update Details</button> *@
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update Details Modal -->
+<div class="modal fade" id="updateDetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <form id="updateDetailsForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Person Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body row g-3">
+                    <input type="hidden" id="DetailsId" name="Id" />
+
+                    <div class="col-md-6">
+                        <label for="DetailOnee" class="form-label">DetailOnee</label>
+                        <input type="text" class="form-control" id="DetailOnee" name="DetailOnee" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailTwoo" class="form-label">DetailTwoo</label>
+                        <input type="text" class="form-control" id="DetailTwoo" name="DetailTwoo" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailOne" class="form-label">DetailOne</label>
+                        <input type="text" class="form-control" id="DetailOne" name="DetailOne" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailTwo" class="form-label">DetailTwo</label>
+                        <input type="text" class="form-control" id="DetailTwo" name="DetailTwo" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailThree" class="form-label">DetailThree</label>
+                        <input type="text" class="form-control" id="DetailThree" name="DetailThree" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailFour" class="form-label">DetailFour</label>
+                        <input type="text" class="form-control" id="DetailFour" name="DetailFour" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailFive" class="form-label">DetailFive</label>
+                        <input type="text" class="form-control" id="DetailFive" name="DetailFive" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailSix" class="form-label">DetailSix</label>
+                        <input type="text" class="form-control" id="DetailSix" name="DetailSix" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailSeven" class="form-label">DetailSeven</label>
+                        <input type="text" class="form-control" id="DetailSeven" name="DetailSeven" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="DetailEigth" class="form-label">DetailEigth</label>
+                        <input type="text" class="form-control" id="DetailEigth" name="DetailEigth" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-button">Save Details</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reschedule Appointment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="reschedulePersonId" />
+
+                <div class="mb-3">
+                    <label class="form-label"><strong>Person:</strong></label>
+                    <div id="reschedulePersonName"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Available Date</label>
+                    <select class="form-select" id="availableDate" required>
+                        <option value="">Select date...</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Available Time</label>
+                    <select class="form-select" id="availableTime" required disabled>
+                        <option value="">Select time...</option>
+                    </select>
+                </div>
+            </div>
+            <!-- Reschedule modal footer -->
+            <div class="modal-footer">
+                <button type="button" id="confirmReschedule" class="btn btn-reschedule">Reschedule</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // compute age from an ISO date (yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss)
+            function computeAgeFromIso(dateStr) {
+                if (!dateStr) return '';
+                var d = dateStr.split('T')[0];
+                var parts = d.split('-');
+                if (parts.length < 3) return '';
+                var y = parseInt(parts[0], 10);
+                var m = parseInt(parts[1], 10) - 1;
+                var day = parseInt(parts[2], 10);
+                var dob = new Date(y, m, day);
+                if (isNaN(dob.getTime())) return '';
+                var today = new Date();
+                var age = today.getFullYear() - dob.getFullYear();
+                var mm = today.getMonth() - dob.getMonth();
+                if (mm < 0 || (mm === 0 && today.getDate() < dob.getDate())) age--;
+                return age >= 0 ? age : '';
+            }
+
+            // Quick search
+            const searchBox = document.getElementById('searchBox');
+            if (searchBox) {
+                searchBox.addEventListener('input', function (e) {
+                    const q = (e.target.value || '').toLowerCase().trim();
+                    document.querySelectorAll('table tbody tr[data-id]').forEach(tr => {
+                        const text = tr.innerText.toLowerCase();
+                        tr.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
+                    });
+                });
+            }
+
+            // helper: fetch JSON by id from Reschedules controller
+            async function fetchById(id) {
+                try {
+                    const url = '@Url.Action("GetById", "Reschedules")' + '?id=' + encodeURIComponent(id);
+                    const res = await fetch(url, { credentials: 'same-origin' });
+                    if (!res.ok) throw new Error('Server returned ' + res.status);
+                    return await res.json();
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to load record: ' + err.message);
+                    return null;
+                }
+            }
+
+            // Open Update modal and populate fields
+            async function openUpdateModal(id) {
+                const data = await fetchById(id);
+                if (!data) return;
+
+                document.getElementById('Id').value = data.id || '';
+                document.getElementById('Name').value = data.name || '';
+                document.getElementById('HomeAddress').value = data.homeAddress || '';
+                document.getElementById('Date').value = data.date ? data.date.split('T')[0] : '';
+                document.getElementById('BirthDay').value = data.birthDay ? data.birthDay.split('T')[0] : '';
+
+                // compute age client-side
+                const computedAge = computeAgeFromIso(data.birthDay ? data.birthDay.split('T')[0] : '');
+                if (computedAge !== '') document.getElementById('Age').value = computedAge;
+                else document.getElementById('Age').value = data.age || '';
+
+                document.getElementById('HomeNumber').value = data.homeNumber || '';
+                document.getElementById('Occupation').value = data.occupation || '';
+                document.getElementById('MobileNumber').value = data.mobileNumber || '';
+                document.getElementById('OfficeAddress').value = data.officeAddress || '';
+                document.getElementById('EmailAddress').value = data.emailAddress || '';
+
+                // Only prefill Status if it's not equal to WalkInStatus and not a walk-in token
+                var statusValue = (data.status || '').toString().trim();
+                var walkInValue = (data.walkInStatus || '').toString().trim();
+                var lower = statusValue.toLowerCase();
+                if (lower === 'pre-register' || lower === 'registered' || (walkInValue && lower === walkInValue.toLowerCase())) {
+                    statusValue = '';
+                }
+                document.getElementById('Status').value = statusValue;
+
+                document.getElementById('NameOfSpouse').value = data.nameOfSpouse || '';
+                document.getElementById('PersonalResponsibleforAccount').value = data.personalResponsibleforAccount || '';
+                document.getElementById('Relationship').value = data.relationship || '';
+                document.getElementById('PhysicianCare').value = data.physicianCare || '';
+                document.getElementById('PhysicianName').value = data.physicianName || '';
+                document.getElementById('ContactNumber').value = data.contactNumber || '';
+                document.getElementById('AvailableDay').value = data.availableDay || '';
+                document.getElementById('AvailableTime').value = data.availableTime || '';
+
+                // show modal
+                const modalEl = document.getElementById('updateModal');
+                if (modalEl && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalEl).show();
+            }
+
+            // Open Details modal and populate fields
+            async function openDetailsModal(id) {
+                const data = await fetchById(id);
+                if (!data) return;
+
+                document.getElementById('detailName').textContent = data.name || '';
+                document.getElementById('detailHomeAddress').textContent = data.homeAddress || '';
+                document.getElementById('detailDate').textContent = data.date ? data.date.split('T')[0] : '';
+                document.getElementById('detailBirthDay').textContent = data.birthDay ? (new Date(data.birthDay)).toLocaleDateString() : '';
+                document.getElementById('detailAge').textContent = data.age || computeAgeFromIso(data.birthDay || '') || '';
+                document.getElementById('detailHomeNumber').textContent = data.homeNumber || '';
+                document.getElementById('detailOccupation').textContent = data.occupation || '';
+                document.getElementById('detailMobileNumber').textContent = data.mobileNumber || '';
+                document.getElementById('detailOfficeAddress').textContent = data.officeAddress || '';
+                document.getElementById('detailEmailAddress').textContent = data.emailAddress || '';
+                document.getElementById('detailStatus').textContent = data.status || '';
+                document.getElementById('detailWalkInStatus').textContent = data.walkInStatus || '';
+                document.getElementById('detailNameOfSpouse').textContent = data.nameOfSpouse || '';
+                document.getElementById('detailPersonalResponsibleforAccount').textContent = data.personalResponsibleforAccount || '';
+                document.getElementById('detailRelationship').textContent = data.relationship || '';
+                document.getElementById('detailPhysicianCare').textContent = data.physicianCare || '';
+                document.getElementById('detailPhysicianName').textContent = data.physicianName || '';
+                document.getElementById('detailContactNumber').textContent = data.contactNumber || '';
+                document.getElementById('detailAvailableDay').textContent = data.availableDay || '';
+                document.getElementById('detailAvailableTime').textContent = data.availableTime || '';
+
+                const modalEl = document.getElementById('detailsModal');
+                if (modalEl && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalEl).show();
+            }
+
+            // Load available dates into reschedule modal
+            async function loadAvailableDatesInto(selectEl) {
+                try {
+                    const url = '@Url.Action("GetAvailableDates","Reschedules")';
+                    const res = await fetch(url, { credentials: 'same-origin' });
+                    if (!res.ok) throw new Error('Server returned ' + res.status);
+                    const data = await res.json();
+                    // Expect data to be array [{ value:'2026-01-29', text:'2026-01-29', availableSlots: 3 }, ...]
+                    selectEl.innerHTML = '<option value="">Select date...</option>';
+                    if (Array.isArray(data)) {
+                        data.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.value || item.text;
+                            opt.textContent = item.text + (item.availableSlots ? ` (${item.availableSlots} slots)` : '');
+                            selectEl.appendChild(opt);
+                        });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    // leave default option
+                }
+            }
+
+            // Open Reschedule modal
+            async function openRescheduleModal(id, name) {
+                document.getElementById('reschedulePersonId').value = id;
+                document.getElementById('reschedulePersonName').textContent = name || '';
+
+                // clear previous
+                const dateSel = document.getElementById('availableDate');
+                const timeSel = document.getElementById('availableTime');
+                if (dateSel) dateSel.innerHTML = '<option value="">Select date...</option>';
+                if (timeSel) timeSel.innerHTML = '<option value="">Select time...</option>';
+
+                if (dateSel) await loadAvailableDatesInto(dateSel);
+
+                const modalEl = document.getElementById('rescheduleModal');
+                if (modalEl && typeof bootstrap !== 'undefined') new bootstrap.Modal(modalEl).show();
+            }
+
+            // When user selects date in Reschedule modal, load times
+            document.addEventListener('change', async function (e) {
+                if (e.target && e.target.id === 'availableDate') {
+                    const selected = e.target.value;
+                    const timeSel = document.getElementById('availableTime');
+                    if (!selected) {
+                        timeSel.innerHTML = '<option value="">Select time...</option>';
+                        timeSel.disabled = true;
+                        return;
+                    }
+                    try {
+                        const url = '@Url.Action("GetAvailableTimeSlots","Reschedules")' + '?date=' + encodeURIComponent(selected);
+                        const res = await fetch(url, { credentials: 'same-origin' });
+                        if (!res.ok) throw new Error('Server returned ' + res.status);
+                        const data = await res.json();
+                        timeSel.innerHTML = '<option value="">Select time...</option>';
+                        if (Array.isArray(data) && data.length > 0) {
+                            data.forEach(it => {
+                                const opt = document.createElement('option');
+                                opt.value = it.value || it.text;
+                                opt.textContent = it.text;
+                                timeSel.appendChild(opt);
+                            });
+                            timeSel.disabled = false;
+                        } else {
+                            timeSel.innerHTML = '<option value="">No available times</option>';
+                            timeSel.disabled = true;
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        timeSel.innerHTML = '<option value="">Error loading</option>';
+                        timeSel.disabled = true;
+                    }
+                }
+            });
+
+            // Wire action links (delegated)
+            document.addEventListener('click', function (e) {
+                const upd = e.target.closest('.action-update');
+                if (upd) {
+                    e.preventDefault();
+                    const id = upd.getAttribute('data-id');
+                    if (id) openUpdateModal(id);
+                    return;
+                }
+                const det = e.target.closest('.action-details');
+                if (det) {
+                    e.preventDefault();
+                    const id = det.getAttribute('data-id');
+                    if (id) openDetailsModal(id);
+                    return;
+                }
+                const res = e.target.closest('.action-reschedule');
+                if (res) {
+                    e.preventDefault();
+                    const id = res.getAttribute('data-id');
+                    // get person name from row cell
+                    const row = res.closest('tr');
+                    const name = row ? (row.querySelector('td:nth-child(2)')?.innerText || '') : '';
+                    if (id) openRescheduleModal(id, name);
+                    return;
+                }
+            });
+
+            // When BirthDay changes in Update modal, recompute age
+            document.getElementById('BirthDay')?.addEventListener('change', function (e) {
+                const val = e.target.value;
+                const computed = computeAgeFromIso(val);
+                if (computed !== '') document.getElementById('Age').value = computed;
+            });
+
+            // Wire update form submit (existing endpoint)
+            document.getElementById('updateForm')?.addEventListener('submit', async function (ev) {
+                ev.preventDefault();
+                const form = ev.target;
+                const data = new FormData(form);
+                try {
+                    const res = await fetch('@Url.Action("Update","Reschedules")', {
+                        method: 'POST',
+                        body: data,
+                        credentials: 'same-origin'
+                    });
+                    if (!res.ok) throw new Error('Server returned ' + res.status);
+                    // reload page to reflect changes
+                    location.reload();
+                } catch (err) {
+                    console.error(err);
+                    alert('Error saving update: ' + err.message);
+                }
+            });
+
+            // Handle confirm reschedule
+            document.getElementById('confirmReschedule')?.addEventListener('click', async function () {
+                const personId = document.getElementById('reschedulePersonId').value;
+                const newDate = document.getElementById('availableDate').value;
+                const newTime = document.getElementById('availableTime').value;
+                if (!personId || !newDate || !newTime) return alert('Please select date and time.');
+                try {
+                    const res = await fetch('@Url.Action("RescheduleAppointment","Reschedules")', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ personId, newDate, newTime })
+                    });
+                    const json = await res.json();
+                    if (!json.success) return alert('Reschedule failed: ' + (json.message || 'unknown'));
+                    location.reload();
+                } catch (err) {
+                    console.error(err);
+                    alert('Error rescheduling: ' + err.message);
+                }
+            });
+
+        })();
+    </script>
+}

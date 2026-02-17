@@ -1,0 +1,163 @@
+﻿@model IEnumerable<DCAS.Models.Payment>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<style>
+    .card {
+        position: relative;
+    }
+
+    .card-header {
+        max-width: fit-content;
+        width: auto;
+        padding: 5px 15px;
+        background-color: #7A4B00;
+        margin: -15 auto;
+    }
+
+    .card-header h2 {
+        margin: 0;
+        padding: 5px 0;
+        color: white;
+    }
+
+    .card-payment {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: none;
+        border-radius: 12px;
+    }
+
+    .card-payment:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .icon-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 120px;
+        background-color: #DACBAE;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .profile-icon {
+        font-size: 5rem;
+        color: #7A4B00;
+    }
+
+    .card-body h5 {
+        font-weight: 600;
+        color: #212529; 
+    }
+
+    .card-body ul li {
+        margin-bottom: 8px;
+        color: #495057;
+    }
+
+    .card-footer {
+        background-color: #fff;
+        border-top: 1px solid #dee2e6;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        padding: 12px;
+        margin-top:-20px;
+    }
+
+    .btn-group .btn {
+        font-size: 0.8rem;
+    }
+
+    /* Walk-in button design (visual only) */
+    .card-header.d-flex { padding-right: 24px; }
+    .btn-walkin {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .45rem .9rem;
+        border: 2px solid #7A4B00;
+        background: transparent;
+        color: #7A4B00;
+        border-radius: 6px;
+        font-weight: 600;
+        box-shadow: none;
+        cursor: pointer;
+        transition: background .12s ease, color .12s ease, transform .08s ease;
+        position: absolute;
+        right: 28px;
+        top: 12px;
+        z-index: 20;
+        text-decoration: none;
+    }
+    .btn-walkin:hover {
+        background: rgba(178,137,137,0.08);
+        transform: translateY(-2px);
+    }
+    .btn-walkin:active { transform: translateY(0); }
+
+    /* Keep layout responsive */
+    @@media (max-width: 576px) {
+        .btn-walkin { position: static; display: inline-flex; margin-left: 8px; top: auto; right: auto; }
+        .card-header { padding-right: 12px; }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center text-black">
+        <h2 class="mb-0">
+            <i class="fas fa-peso-sign"></i> Payments
+        </h2>
+
+        <!-- Changed: use anchor tag helper so click navigates to WalkIn page -->
+        <a asp-controller="Payments" asp-action="WalkIn" class="btn-walkin" role="button" title="Walk-in" aria-label="Walk-in">
+            <i class="fas fa-door-open"></i>
+            Walk-in
+        </a>
+    </div>
+
+    <div class="m-5">
+        <div class="row">
+            @foreach (var item in Model)
+            {
+                <div class="col-md-4 col-sm-6 mb-4">
+                    <div class="card card-payment h-100 shadow-sm">
+                        <div class="icon-container">
+                            <i class="fas fa-user profile-icon"></i>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title text-primary">@item.Person?.Name</h5>
+                            <ul class="list-unstyled">
+                                <li><strong><i class="fas fa-phone-alt me-2"></i> Contact:</strong> @item.Person?.ContactNumber</li>
+                                <li><strong><i class="fas fa-user-md me-2"></i> Doctor:</strong> @item.DoctorName</li>
+                                <li><strong><i class="fas fa-tooth me-2"></i> Service:</strong> @string.Join(", ", (item.PaymentServices ?? Enumerable.Empty<DCAS.Models.PaymentService>()).Select(ps => ps.Service?.MedicalNameService))</li>
+                                <li><strong><i class="fas fa-credit-card me-2"></i> Method:</strong> @item.PaymentMethod</li>
+                                <li><strong><i class="fas fa-peso-sign me-2"></i> Price:</strong> @item.Service?.Price.ToString("C", new System.Globalization.CultureInfo("en-PH"))</li>
+                                <li><strong><i class="fas fa-hand-holding-usd me-2"></i> Amount Paid:</strong> @item.AmountPaid.ToString("C", new System.Globalization.CultureInfo("en-PH"))</li>
+                                <li><strong><i class="fas fa-chart-line me-2"></i> Status:</strong> <span class="badge @(item.Status == "Paid" ? "bg-success" : "bg-warning text-dark")">@item.Status</span></li>
+                            </ul>
+                        </div>
+                        <div class="card-footer text-end">
+                            <div class="btn-group w-100" role="group">
+                                <a class="btn btn-outline-info btn-sm" asp-action="Details" asp-route-id="@item.PaymentId">
+                                    <i class="fas fa-info-circle"></i> Details
+                                </a>
+                                <a class="btn btn-outline-warning btn-sm" asp-action="Edit" asp-route-id="@item.PaymentId">
+                                    <i class="fas fa-peso-sign"></i> Pay
+                                </a>
+                                <a class="btn btn-outline-danger btn-sm" asp-action="Delete" asp-route-id="@item.PaymentId">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />

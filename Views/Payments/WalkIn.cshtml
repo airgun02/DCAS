@@ -1,0 +1,434 @@
+﻿@model IEnumerable<DCAS.Models.PersonInfo>
+@{
+    ViewData["Title"] = "Walk-in";
+}
+
+<style>
+    .card-header {
+        background-color: #7A4B00;
+    }
+
+    .mb-0{
+        color:white;
+    }
+
+    .fas{
+        color:white;
+    }
+
+    /* Fixed selector and added color for modal header and contents */
+    .modal-header{
+        background-color: #7A4B00;
+        color: #ffffff;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        align-items: center;
+    }
+
+    .modal-header .modal-title {
+        color: #ffffff;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    /* Make close icon visible on dark header */
+    .modal-header .btn-close {
+        filter: invert(1) brightness(1.2);
+    }
+
+    .btn-outline-primary{
+        color:white;
+        border-color:white;
+    }
+</style>
+<div class="container py-4">
+    <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h3 class="mb-0"><i class="fas fa-door-open"></i> Walk-in</h3>
+
+            <div class="d-flex" style="gap:8px; align-items:center;">
+                <form id="walkinSearchForm" method="get" class="d-flex" style="gap:8px; align-items:center;">
+                    <input type="text" name="q" id="searchBox" class="form-control form-control-sm"
+                           placeholder="Search name, contact or email" value="@(ViewBag.Query ?? "")" style="min-width:260px;" />
+                </form>
+
+                <!-- Added data-bs-* fallback so Bootstrap can open the modal without custom JS -->
+                <button id="btnNewRegister" type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newRegisterModal">New Register</button>
+            </div>
+        </div>
+
+        <div class="card-body">
+            @Html.AntiForgeryToken()
+
+            <div class="table-responsive">
+                <table class="table table-hover" id="walkinTable">
+                    <thead>
+                        <tr>
+                            <th style="width:3rem;">#</th>
+                            <th>Client</th>
+                            <th>Contact</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            @* <th style="width:140px;">Action</th> *@
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            var idx = 1;
+                            foreach (var item in Model)
+                            {
+                                <tr data-id="@item.Id">
+                                    <td>@idx</td>
+                                    <td><strong>@(item.Name ?? "\u2014")</strong></td>
+                                    <td>@(item.MobileNumber ?? "\u2014")</td>
+                                    <td>@(item.EmailAddress ?? "\u2014")</td>
+                                    @{
+                                        var state = string.IsNullOrWhiteSpace(item.WalkInStatus) ? "-" : item.WalkInStatus;
+                                        var isRegistered = string.Equals(item.WalkInStatus, "Registered", StringComparison.OrdinalIgnoreCase);
+                                        var badgeClass = isRegistered ? "bg-success text-white" : "bg-secondary text-white";
+                                    }
+                                    <td>
+                                        <span class="badge @badgeClass status-badge">@state</span>
+                                    </td>
+                                </tr>
+                                idx++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">No registered clients found.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Register Modal (expanded to collect full profile except AvailableDay, AvailableTime, HomeNumber, Date) -->
+<div class="modal fade" id="newRegisterModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form id="newRegisterForm">
+        @Html.AntiForgeryToken()
+        <div class="modal-header">
+          <h5 class="modal-title">New Register (basic profile)</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-2">
+            <div class="col-md-5">
+              <label class="form-label">Full name</label>
+              <input type="text" id="newRegisterName" name="Name" class="form-control" required maxlength="255" />
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Birth date</label>
+              <input type="date" id="newRegisterBirthDay" name="BirthDay" class="form-control" />
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Age</label>
+              <input type="number" id="newRegisterAge" name="Age" class="form-control" min="0" />
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Status</label>
+              <select id="newRegisterStatus" name="Status" class="form-select">
+                <option value="">-- Select --</option>
+                <option value="Single">Single</option>
+                <option value="Married">Married</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+              </select>
+            </div>
+
+            <!-- Mobile number -->
+            <div class="col-md-6">
+              <label class="form-label">Mobile number</label>
+              <input type="text" id="newRegisterMobile" name="MobileNumber" class="form-control"
+                     maxlength="11" pattern="\d{11}" inputmode="numeric" placeholder="11 digits" />
+              <div class="form-text">Exactly 11 digits. Only numbers.</div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Email address</label>
+              <input type="email" id="newRegisterEmail" name="EmailAddress" class="form-control" maxlength="255" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Occupation</label>
+              <input type="text" id="newRegisterOccupation" name="Occupation" class="form-control" maxlength="255" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Home address</label>
+              <input type="text" id="newRegisterHomeAddress" name="HomeAddress" class="form-control" maxlength="500" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Office address</label>
+              <input type="text" id="newRegisterOfficeAddress" name="OfficeAddress" class="form-control" maxlength="500" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Name of spouse</label>
+              <input type="text" id="newRegisterSpouse" name="NameOfSpouse" class="form-control" maxlength="255" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Person responsible for account</label>
+              <input type="text" id="newRegisterResponsible" name="PersonalResponsibleforAccount" class="form-control" maxlength="255" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Relationship</label>
+              <input type="text" id="newRegisterRelationship" name="Relationship" class="form-control" maxlength="255" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Physician Care</label>
+              <select id="newRegisterPhysicianCare" name="PhysicianCare" class="form-select">
+                <option value="">-- Select --</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Physician name</label>
+              <input type="text" id="newRegisterPhysicianName" name="PhysicianName" class="form-control" maxlength="255" />
+            </div>
+
+            <!-- Added Physician Contact Number -->
+            <div class="col-md-6">
+              <label class="form-label">Physician Contact Number</label>
+              <input type="text" id="newRegisterPhysicianContactNumber" name="ContactNumber" class="form-control" maxlength="11" pattern="\d{11}" inputmode="numeric" placeholder="e.g. 0956..." />
+               <div class="form-text">Optional. Numeric contact number for the physician.</div>
+            </div>
+
+            <!-- Added Date Of Visit -->
+            <div class="col-md-6">
+              <label class="form-label">Date Of Visit</label>
+              <input type="date" id="newRegisterDateOfVisit" name="Date" class="form-control" />
+            </div>
+           
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary btn-sm">Register</button>
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            // client-side quick search (filters rows by name/contact/email)
+            const searchBox = document.getElementById('searchBox');
+            if (searchBox) {
+                searchBox.addEventListener('input', function (e) {
+                    const q = (e.target.value || '').toLowerCase().trim();
+                    document.querySelectorAll('#walkinTable tbody tr[data-id]').forEach(tr => {
+                        const text = tr.innerText.toLowerCase();
+                        tr.style.display = q === '' || text.indexOf(q) !== -1 ? '' : 'none';
+                    });
+                });
+            }
+
+            // Anti-forgery token helper
+            function getRequestVerificationToken() {
+                const t = document.querySelector('input[name="__RequestVerificationToken"]');
+                return t ? t.value : '';
+            }
+
+            // Handle register update via AJAX (existing button) - left unchanged
+            document.querySelectorAll('.btn-register').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const id = this.getAttribute('data-id');
+                    if (!id) return;
+                    const button = this;
+                    button.disabled = true;
+                    const originalHtml = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving';
+
+                    fetch('@Url.Action("RegisterAndCreatePayment","Payments")', {
+                         method: 'POST',
+                         headers: {
+                             'Accept': 'application/json',
+                             'Content-Type': 'application/x-www-form-urlencoded'
+                         },
+                         body: new URLSearchParams({
+                             id: id,
+                             __RequestVerificationToken: getRequestVerificationToken()
+                         })
+                     })
+                    .then(r => {
+                        if (!r.ok) return r.text().then(t => { throw new Error('Server returned ' + r.status + ': ' + t); });
+                        return r.json();
+                    })
+                    .then(data => {
+                        if (data && data.success) {
+                            const tr = document.querySelector('tr[data-id="' + id + '"]');
+                            if (tr) {
+                                const badge = tr.querySelector('.status-badge');
+                                if (badge) {
+                                    badge.classList.remove('bg-secondary', 'text-white');
+                                    badge.classList.add('bg-success', 'text-white');
+                                    badge.textContent = 'Registered';
+                                }
+                                const btnAction = tr.querySelector('.btn-register');
+                                if (btnAction) {
+                                    btnAction.disabled = true;
+                                    btnAction.innerHTML = originalHtml;
+                                }
+                            }
+                            button.disabled = true;
+                            button.innerHTML = originalHtml;
+                            window.location.href = '@Url.Action("Index", "Payments")';
+                        } else {
+                            alert('Failed to update: ' + (data?.error || 'unknown error'));
+                            button.disabled = false;
+                            button.innerHTML = originalHtml;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error updating status. See console.');
+                        button.disabled = false;
+                        button.innerHTML = originalHtml;
+                    });
+                });
+            });
+
+            // New Register modal logic
+            const btnNewRegister = document.getElementById('btnNewRegister');
+            const newRegisterModalEl = document.getElementById('newRegisterModal');
+            let newRegisterModal = null;
+            if (newRegisterModalEl && window.bootstrap && typeof bootstrap.Modal === 'function') {
+                newRegisterModal = new bootstrap.Modal(newRegisterModalEl);
+            }
+
+            if (btnNewRegister) {
+                btnNewRegister.addEventListener('click', function () {
+                    // clear fields
+                    document.querySelectorAll('#newRegisterForm input, #newRegisterForm textarea, #newRegisterForm select').forEach(i => i.value = '');
+                    if (newRegisterModal) newRegisterModal.show();
+                    // if bootstrap modal instance isn't available, data-bs-* on the button will still work when Bootstrap JS is present
+                });
+            }
+
+            // Age auto-compute from BirthDay
+            const birthEl = document.getElementById('newRegisterBirthDay');
+            const ageEl = document.getElementById('newRegisterAge');
+
+            function computeAgeFromDate(value) {
+                if (!ageEl) return;
+                if (!value) {
+                    ageEl.value = '';
+                    return;
+                }
+
+                const dob = new Date(value);
+                if (isNaN(dob.getTime())) { ageEl.value = ''; return; }
+
+                const today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                const m = today.getMonth() - dob.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+
+                ageEl.value = (age >= 0) ? age : '';
+            }
+
+            if (birthEl) {
+                birthEl.addEventListener('change', (e) => computeAgeFromDate(e.target.value));
+                birthEl.addEventListener('input', (e) => computeAgeFromDate(e.target.value));
+            }
+
+            // Submit new register via AJAX
+            const newRegisterForm = document.getElementById('newRegisterForm');
+            if (newRegisterForm) {
+                newRegisterForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const name = (document.getElementById('newRegisterName').value || '').trim();
+                    if (!name) return alert('Please enter a name.');
+
+                    const payload = {
+                        Name: name,
+                        BirthDay: document.getElementById('newRegisterBirthDay').value,
+                        Age: document.getElementById('newRegisterAge').value,
+                        Status: document.getElementById('newRegisterStatus') ? document.getElementById('newRegisterStatus').value : '',
+                        MobileNumber: document.getElementById('newRegisterMobile') ? document.getElementById('newRegisterMobile').value.trim() : '',
+                        EmailAddress: document.getElementById('newRegisterEmail') ? document.getElementById('newRegisterEmail').value.trim() : '',
+                        Occupation: document.getElementById('newRegisterOccupation') ? document.getElementById('newRegisterOccupation').value.trim() : '',
+                        HomeAddress: document.getElementById('newRegisterHomeAddress') ? document.getElementById('newRegisterHomeAddress').value.trim() : '',
+                        OfficeAddress: document.getElementById('newRegisterOfficeAddress') ? document.getElementById('newRegisterOfficeAddress').value.trim() : '',
+                        NameOfSpouse: document.getElementById('newRegisterSpouse') ? document.getElementById('newRegisterSpouse').value.trim() : '',
+                        PersonalResponsibleforAccount: document.getElementById('newRegisterResponsible') ? document.getElementById('newRegisterResponsible').value.trim() : '',
+                        Relationship: document.getElementById('newRegisterRelationship') ? document.getElementById('newRegisterRelationship').value.trim() : '',
+                        PhysicianCare: document.getElementById('newRegisterPhysicianCare') ? document.getElementById('newRegisterPhysicianCare').value : '',
+                        PhysicianName: document.getElementById('newRegisterPhysicianName') ? document.getElementById('newRegisterPhysicianName').value.trim() : '',
+                        ContactNumber: document.getElementById('newRegisterPhysicianContactNumber') ? document.getElementById('newRegisterPhysicianContactNumber').value.trim() : '',
+                        Date: document.getElementById('newRegisterDateOfVisit') ? document.getElementById('newRegisterDateOfVisit').value : '',
+                        MedicalServices: document.getElementById('newRegisterMedicalServices') ? document.getElementById('newRegisterMedicalServices').value.trim() : '',
+                        Price: document.getElementById('newRegisterPrice') ? document.getElementById('newRegisterPrice').value : '',
+                        DetailOnee: document.getElementById('newRegisterDetailOnee') ? document.getElementById('newRegisterDetailOnee').value.trim() : '',
+                        DetailOne: document.getElementById('d1') ? document.getElementById('d1').value.trim() : '',
+                        DetailTwo: document.getElementById('d2') ? document.getElementById('d2').value.trim() : '',
+                        DetailThree: document.getElementById('d3') ? document.getElementById('d3').value.trim() : '',
+                        DetailFour: document.getElementById('d4') ? document.getElementById('d4').value.trim() : '',
+                        DetailFive: document.getElementById('d5') ? document.getElementById('d5').value.trim() : '',
+                        DetailSix: document.getElementById('d6') ? document.getElementById('d6').value.trim() : '',
+                        DetailSeven: document.getElementById('d7') ? document.getElementById('d7').value.trim() : '',
+                        DetailEigth: document.getElementById('d8') ? document.getElementById('d8').value.trim() : '',
+                        __RequestVerificationToken: getRequestVerificationToken()
+                    };
+
+                    const btn = newRegisterForm.querySelector('button[type="submit"]');
+                    const original = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving';
+
+                    const params = new URLSearchParams();
+                    Object.keys(payload).forEach(k => {
+                        if (payload[k] !== undefined && payload[k] !== null) {
+                            params.append(k, payload[k]);
+                        }
+                    });
+
+                    fetch('@Url.Action("CreateWalkInNew", "Payments")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'Accept': 'application/json'
+                        },
+                        body: params
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.success) {
+                            if (newRegisterModal) newRegisterModal.hide();
+                            window.location.href = '@Url.Action("Index", "Payments")';
+                        } else {
+                            alert('Failed to register: ' + (data?.error || 'unknown'));
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error creating record. See console.');
+                    })
+                    .finally(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                    });
+                });
+            }
+        })();
+    </script>
+}

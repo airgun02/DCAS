@@ -1,0 +1,306 @@
+﻿@model DCAS.Models.Users
+
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<style>
+    :root {
+        --brown: #7A4B00;
+        --beige: #DACBAE;
+        --whitey: #ffffff;
+    }
+
+    /* Top header bar */
+    .page-header {
+        background: var(--brown);
+        color: #fff;
+        padding: 14px 18px;
+        font-size: 1.15rem;
+        font-weight: 500;
+        border-radius: 6px 6px 0 0;
+        margin-bottom: 0;
+    }
+
+    /* Beige panel behind form */
+    .create-card {
+        background: var(--beige);
+        border-radius: 0 0 6px 6px;
+        padding: 18px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.04);
+        margin-top: 0;
+    }
+
+    .create-card .form-label,
+    .create-card .card-title {
+        color: var(--brown);
+        font-weight: 500;
+    }
+
+    .create-card .form-control {
+        background: var(--whitey);
+        border-radius: 6px;
+    }
+
+    /* Profile/upload panel (right column) */
+    .profile-panel {
+        background: var(--whitey);
+        border-radius: 8px;
+        border: 1px solid rgba(138,79,2,0.12);
+        padding: 14px;
+        box-shadow: none;
+    }
+    .profile-panel .card-body { background: transparent; padding: 0; }
+    .profile-panel .card-title { color: var(--brown); font-weight: 600; margin-bottom: 12px; }
+    .profile-panel img { border: 4px solid rgba(138,79,2,0.14); box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    .profile-panel label.form-label { color: var(--brown); font-weight: 500; }
+    .profile-panel input[type="file"] {
+        display: block; width: 100%; background: var(--whitey); padding: .45rem .5rem;
+        border-radius: 6px; border: 1px solid rgba(138,79,2,0.25); color: #333;
+    }
+    .profile-panel .form-text { color: var(--brown); font-size: .85rem; margin-top: .35rem; }
+
+    @@media (max-width: 576px) {
+        .page-header { padding: 12px; font-size: 1rem; }
+        .create-card { padding: 12px; }
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="page-header">
+        Edit User
+    </div>
+
+    <div class="create-card">
+        <div class="row mb-3">
+            <div class="col-12">
+                <p class="text-muted">Modify user details and optionally update profile image.</p>
+                <hr />
+            </div>
+        </div>
+
+        <form asp-action="Edit" enctype="multipart/form-data" class="row g-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UsersId" />
+
+            <!-- Left: main form -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0" style="background: transparent;">
+                    <div class="card-body p-0">
+                        <h5 class="card-title mb-3">Personal Information</h5>
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Name" class="form-label"></label>
+                                <input asp-for="Name" class="form-control" />
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label"></label>
+                                <input asp-for="Email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="PhoneNumber" class="form-label"></label>
+                                <input asp-for="PhoneNumber" class="form-control" maxlength="11" pattern="\d{11}" inputmode="numeric" />
+                                <div class="form-text">Exactly 11 digits (numbers only).</div>
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Nationality" class="form-label"></label>
+                                <input asp-for="Nationality" class="form-control" />
+                                <span asp-validation-for="Nationality" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Gender" class="form-label"></label>
+                                <input asp-for="Gender" class="form-control" />
+                                <span asp-validation-for="Gender" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="BirthDate" class="form-label"></label>
+                                <input asp-for="BirthDate" class="form-control" type="date" id="BirthDate" />
+                                <span asp-validation-for="BirthDate" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label asp-for="Age" class="form-label"></label>
+                                <input asp-for="Age" class="form-control" id="Age" readonly />
+                                <span asp-validation-for="Age" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-9">
+                                <label asp-for="Address" class="form-label"></label>
+                                <input asp-for="Address" class="form-control" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="card-title mb-3">Professional / Work</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Role" class="form-label"></label>
+                                <input asp-for="Role" class="form-control" />
+                                <span asp-validation-for="Role" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="JobTitle" class="form-label"></label>
+                                <input asp-for="JobTitle" class="form-control" />
+                                <span asp-validation-for="JobTitle" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Specialization" class="form-label"></label>
+                                <input asp-for="Specialization" class="form-control" />
+                                <span asp-validation-for="Specialization" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Position" class="form-label"></label>
+                                <input asp-for="Position" class="form-control" />
+                                <span asp-validation-for="Position" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="WorkStatus" class="form-label"></label>
+                                <input asp-for="WorkStatus" class="form-control" />
+                                <span asp-validation-for="WorkStatus" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="StartDate" class="form-label"></label>
+                                <input asp-for="StartDate" class="form-control" type="date" />
+                                <span asp-validation-for="StartDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="card-title mb-3">Account</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label"></label>
+                                <input asp-for="Username" class="form-control" />
+                                <span asp-validation-for="Username" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label"></label>
+                                <input asp-for="Password" class="form-control" type="password" />
+                                <div class="form-text">Leave blank to keep existing password.</div>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary">Back to List</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: preview & image upload -->
+            <div class="col-lg-4">
+                <div class="card profile-panel">
+                    <div class="card-body text-center">
+                        <h6 class="card-title">Profile Image</h6>
+                        <div class="mb-3">
+                            <img id="previewImage" src="@(Model != null && Model.UsersId > 0 ? Url.Action("GetImage", "Users", new { id = Model.UsersId }) : Url.Content("~/images/avatar-placeholder.png"))" class="img-fluid rounded-circle border" style="width:160px; height:160px; object-fit:cover;" alt="Profile preview" />
+                        </div>
+
+                        <div class="mb-3 text-start">
+                            <label for="Image" class="form-label">Upload Image</label>
+                            <input name="Image" id="Image" type="file" class="form-control" accept="image/*" />
+                            <div class="form-text">PNG, JPG — max recommended 2MB.</div>
+                            @if (ViewData.ModelState["Profile"]?.Errors.Count > 0)
+                            {
+                                <span class="text-danger">@ViewData.ModelState["Profile"].Errors.FirstOrDefault()?.ErrorMessage</span>
+                            }
+                        </div>
+
+                        <hr />
+
+                        <div class="text-start">
+                            <h6 class="mb-2">Quick Info</h6>
+                            <p class="mb-1"><strong>Email:</strong> <span class="text-muted">@Model?.Email</span></p>
+                            <p class="mb-1"><strong>Phone:</strong> <span class="text-muted">@Model?.PhoneNumber</span></p>
+                            <p class="mb-0"><strong>Nationality:</strong> <span class="text-muted">@Model?.Nationality</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        (function () {
+            // compute age from date input (yyyy-mm-dd)
+            function computeAge(dateInputValue) {
+                if (!dateInputValue) return '';
+                const parts = dateInputValue.split('-');
+                if (parts.length < 3) return '';
+                const y = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10) - 1;
+                const d = parseInt(parts[2], 10);
+                const dob = new Date(y, m, d);
+                if (isNaN(dob.getTime())) return '';
+                const today = new Date();
+                let age = today.getFullYear() - dob.getFullYear();
+                const mm = today.getMonth() - dob.getMonth();
+                if (mm < 0 || (mm === 0 && today.getDate() < dob.getDate())) age--;
+                return age >= 0 ? age : '';
+            }
+
+            const birthEl = document.getElementById('BirthDate');
+            const ageEl = document.getElementById('Age');
+
+            if (birthEl) {
+                // set initial age if birthdate preset
+                if (birthEl.value) {
+                    const a = computeAge(birthEl.value);
+                    if (a !== '') ageEl.value = a;
+                }
+                birthEl.addEventListener('change', function (e) {
+                    const a = computeAge(e.target.value);
+                    ageEl.value = a !== '' ? a : '';
+                });
+            }
+
+            // Image preview
+            const inputImage = document.getElementById('Image');
+            const preview = document.getElementById('previewImage');
+            if (inputImage) {
+                inputImage.addEventListener('change', function (ev) {
+                    const f = ev.target.files && ev.target.files[0];
+                    if (!f) {
+                        preview.src = '@Url.Content("~/images/avatar-placeholder.png")';
+                        return;
+                    }
+                    if (!f.type.startsWith('image/')) {
+                        alert('Please select a valid image file.');
+                        inputImage.value = '';
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function (e) { preview.src = e.target.result; };
+                    reader.readAsDataURL(f);
+                });
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,104 @@
+@model IEnumerable<DCAS.Models.Payment>
+@{
+    ViewData["Title"] = "Patient History";
+    var personName = ViewBag.PersonName as string ?? "";
+}
+
+<style>
+    :root {
+        --brown: #7A4B00;
+    }
+
+    .history-header {
+        background: var(--brown);
+        color: #fff;
+        padding: 12px 18px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        margin-bottom: 18px;
+    }
+
+    .history-header h4 {
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .history-card {
+        background: #fff;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+        border: 1px solid rgba(0,0,0,0.04);
+    }
+
+    .table-sm th, .table-sm td {
+        vertical-align: middle;
+    }
+
+    /* Fixed media query token */
+    @@media (max-width: 576px) {
+        .history-header { padding: 10px 12px; }
+        .history-card { padding: 8px; }
+    }
+
+    /* Header row color for the patient history table */
+    .history-card table thead th {
+        background: var(--brown);
+        color: #ffffff;
+        font-weight: 600;
+        border-bottom: 2px solid rgba(0,0,0,0.06);
+    }
+
+    /* Optional: make the first/last header corners slightly rounded to match card */
+    .history-card table thead th:first-child { border-top-left-radius: 6px; }
+    .history-card table thead th:last-child { border-top-right-radius: 6px; }
+</style>
+
+<div class="history-header">
+    <h4>Patient History - @personName</h4>
+</div>
+
+<div class="history-card">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width:160px;">Date</th>
+                    <th>Services</th>
+                    <th style="width:120px;">Amount</th>
+                    <th style="width:80px;">View</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var payment in Model)
+                    {
+                        <tr>
+                            <td>@(payment.PaymentDate.ToString("MM-dd-yyyy"))</td>
+                            <td>
+                                @{
+                                    // Services model uses MedicalNameService (not Name)
+                                    var names = payment.PaymentServices?
+                                        .Select(ps => ps.Service?.MedicalNameService ?? $"Service #{ps.ServiceId}")
+                                        ?? Enumerable.Empty<string>();
+                                }
+                                @string.Join(", ", names)
+                            </td>
+                            <td>@payment.AmountPaid.ToString("C")</td>
+                            <td>
+                                <a class="btn btn-sm btn-primary" href="@Url.Action("Details", "Payments", new { id = payment.PaymentId })">View</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No visit history found.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

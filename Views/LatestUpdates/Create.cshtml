@@ -1,0 +1,41 @@
+@model DCAS.Models.LatestUpdate
+
+@{
+    ViewData["Title"] = "Create Update";
+}
+
+<div class="container mt-4">
+    <h3>Create Latest Update</h3>
+    <hr />
+    <form asp-action="Create" enctype="multipart/form-data" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-12">
+            <label asp-for="Title" class="form-label"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Summary" class="form-label"></label>
+            <input asp-for="Summary" class="form-control" />
+            <span asp-validation-for="Summary" class="text-danger"></span>
+        </div>
+        <div class="col-12">
+            <label asp-for="Body" class="form-label"></label>
+            <textarea asp-for="Body" class="form-control" rows="4"></textarea>
+            <span asp-validation-for="Body" class="text-danger"></span>
+        </div>
+        <div class="col-md-6">
+            <label for="Image" class="form-label">Image (optional)</label>
+            <input type="file" name="Image" id="Image" class="form-control" accept="image/*" />
+            <div class="form-text">PNG/JPG recommended. Max 2–5MB (validate server-side below).</div>
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">Post Update</button>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

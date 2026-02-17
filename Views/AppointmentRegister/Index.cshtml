@@ -1,0 +1,881 @@
+﻿@model DCAS.Models.PersonInfo
+
+@{
+    ViewData["Title"] = "Register Appointment";
+    var availableDays = ViewBag.AvailableDays as List<SelectListItem>;
+    var availableTimes = ViewBag.AvailableTimes as List<SelectListItem>;
+    var medicalServices = ViewBag.MedicalServices as List<SelectListItem>;
+}
+<style>
+    .card-header h2 {
+        color: white !important;
+    }
+
+    /* Rebooking modal styling (place near top of view) */
+    .rebook-modal .modal-content {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 6px 30px rgba(0,0,0,0.3);
+    }
+
+    .rebook-modal .modal-header {
+        background: #7A4B00; /* pink header */
+        border-bottom: none;
+        color: white;
+    }
+
+    .rebook-modal .modal-title {
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .rebook-modal .modal-body {
+        padding: 1.25rem 1.5rem;
+    }
+
+    .rebook-modal .form-control,
+    .rebook-modal .form-select {
+        min-height: 40px;
+        border-radius: 4px;
+    }
+
+    .rebook-modal .modal-footer {
+        border-top: none;
+        padding: 0.75rem 1.5rem;
+    }
+
+    /* darker / slightly blurred backdrop for visual effect */
+    .modal-backdrop.show {
+        opacity: 0.55;
+        backdrop-filter: blur(3px);
+    }
+
+    /* larger, more prominent Update button */
+    .rebook-modal .btn-primary {
+        min-width: 96px;
+    }
+
+    /* Cancel button style */
+    .rebook-modal .btn-secondary {
+        background: #6c757d;
+        border-color: #6c757d;
+        color: #fff;
+    }
+
+    .card-header {
+        background-color: #7A4B00;
+        
+    }
+
+    .card-body{
+        background-color: #DACBAE;
+    }
+    .card-footer {
+        background-color: #DACBAE;
+    }
+    .fas {
+        color:white;
+    }
+    .text{
+        color:white;
+    }
+
+    .btn {
+        background-color: #7A4B00;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-3">
+                <div class="card-header text-white">
+                    <h2 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Patient Registration & Appointment Booking
+                    </h2>
+                </div>
+
+                <div class="card-body">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <label class="me-3 mb-0 fw-semibold">Patient Type:</label>
+                                <div class="form-check me-2">
+                                    <input class="form-check-input" type="radio" name="patientType" id="patientTypeNew" value="new" checked>
+                                    <label class="form-check-label" for="patientTypeNew">New</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="patientType" id="patientTypeExisting" value="existing">
+                                    <label class="form-check-label" for="patientTypeExisting">Old</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card shadow-sm">
+                                <!-- keep summary DOM for JS but hidden so only the button is visible -->
+                                <div class="card-body d-flex justify-content-between align-items-center" style="display:none;">
+                                    <div>
+                                        <div class="small text-muted">Selected Patient</div>
+                                        <div id="summaryName" class="fw-bold">—</div>
+                                    </div>
+
+                                </div>
+
+                                <div class="card-footer text-end">
+                                    <button id="quickBookBtn" class="btn btn-sm btn-primary">Rebooking</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Existing patient selector (hidden for New) -->
+                    <div class="row mb-3" id="existingPatientRow" style="display:none;">
+                        <div class="col-md-6">
+                            <label for="existingPatientSearch" class="form-label">Search patients</label>
+                            <input id="existingPatientSearch" class="form-control mb-2" placeholder="Search patients by name, mobile or email..." />
+                            <div id="existingPatientList" class="list-group" style="max-height:280px; overflow:auto;">
+                                <div class="list-group-item text-muted">No results</div>
+                            </div>
+                           @*  <div class="mt-2">
+                                <button id="loadMorePatients" type="button" class="btn btn-sm btn-outline-secondary" style="display:none;">Load more</button>
+                            </div> *@
+                        </div>
+                    </div>
+
+                    <form id="appointmentForm" asp-action="Index" asp-controller="AppointmentRegister" method="post" novalidate>
+                        @Html.AntiForgeryToken()
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div id="successAlert" class="alert alert-success alert-dismissible fade show" role="alert">
+                                @TempData["SuccessMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+
+                            <script>
+                                (function () {
+                                    var alertEl = document.getElementById('successAlert');
+                                    if (!alertEl) return;
+
+                                    // Hide after 4.5 seconds (user asked 4-5s)
+                                    setTimeout(function () {
+                                        // Remove the Bootstrap 'show' class so the alert fades (Bootstrap handles CSS transition)
+                                        alertEl.classList.remove('show');
+
+                                        // Remove element from DOM after CSS transition (500-700ms)
+                                        setTimeout(function () {
+                                            if (alertEl && alertEl.parentNode) alertEl.parentNode.removeChild(alertEl);
+                                        }, 700);
+                                    }, 4500);
+                                })();
+                            </script>
+                        }
+
+                        <input asp-for="Id" type="hidden" />
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" style="display:none;"></div>
+
+                        <!-- Visible for New: only Full Name + Preferred Date + Preferred Time -->
+                        <div id="minimalFields">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label asp-for="Name" class="form-label required">Full Name</label>
+                                    <input asp-for="Name" class="form-control" id="inputName" placeholder="Enter full name" required />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label asp-for="AvailableDay" class="form-label required">Preferred Date</label>
+                                    <select asp-for="AvailableDay" class="form-control" id="availableDateSelect" required>
+                                        @if (availableDays != null && availableDays.Any())
+                                        {
+                                            <option value="">-- Select Date --</option>
+                                            @foreach (var day in availableDays)
+                                            {
+                                                <option value="@day.Value">@day.Text</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="">No available dates</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="AvailableDay" class="text-danger"></span>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <label asp-for="AvailableTime" class="form-label required">Preferred Time</label>
+                                    <select asp-for="AvailableTime" class="form-control" id="availableTimeSelect" required disabled>
+                                        <option value="">-- Select Time --</option>
+                                    </select>
+                                    <span asp-validation-for="AvailableTime" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Extra fields for Existing patients only -->
+                        <div id="extraFields">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="birthDate">Birth Date</label>
+                                    <input type="text" id="birthDate" asp-for="BirthDay" class="form-control" placeholder="MM/DD/YYYY" onchange="calculateAge()" />
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="age">Age</label>
+                                    <input type="text" id="age" class="form-control" readonly />
+                                    <input asp-for="Age" type="hidden" id="ageFieldHidden" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label asp-for="Status">Civil Status</label>
+                                    <select asp-for="Status" class="form-control">
+                                        <option value="">Select status</option>
+                                        <option value="Single">Single</option>
+                                        <option value="Married">Married</option>
+                                        <option value="Divorced">Divorced</option>
+                                        <option value="Widowed">Widowed</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <label asp-for="HomeAddress">Home Address</label>
+                                    <textarea asp-for="HomeAddress" id="inputHomeAddress" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="MobileNumber">Mobile Number</label>
+                                    <input asp-for="MobileNumber" id="inputMobile" class="form-control"
+                                           maxlength="11" minlength="11" pattern="\d{11}" inputmode="numeric" />
+                                    <span asp-validation-for="MobileNumber" class="text-danger"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <label asp-for="EmailAddress">Email Address</label>
+                                    <input asp-for="EmailAddress" id="inputEmail" class="form-control" type="email" />
+                                </div>
+                            </div>
+
+                            <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="MedicalServices" class="form-label required">Service</label>
+                                            <select asp-for="MedicalServices" class="form-control" id="medicalServiceSelectExisting">
+                                                <option value="">-- Select a service --</option>
+                                                @foreach (var service in ViewBag.MedicalServices as List<SelectListItem> ?? new List<SelectListItem>())
+                                                {
+                                                    <option value="@service.Value">@service.Text</option>
+                                                }
+                                            </select>
+                                            <span asp-validation-for="MedicalServices" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                            </div>
+                        </div>
+
+                        <!-- Keep hidden fallback fields as before -->
+                        <input asp-for="Date" type="hidden" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        <input asp-for="DetailOnee" type="hidden" value="N/A" />
+                        <input asp-for="DetailTwoo" type="hidden" value="N/A" />
+                        <input asp-for="OfficeAddress" type="hidden" value="N/A" />
+                        <input asp-for="DetailOne" type="hidden" value="N/A" />
+                        <input asp-for="DetailTwo" type="hidden" value="N/A" />
+                        <input asp-for="DetailThree" type="hidden" value="N/A" />
+                        <input asp-for="DetailFour" type="hidden" value="N/A" />
+                        <input asp-for="DetailFive" type="hidden" value="N/A" />
+                        <input asp-for="DetailSix" type="hidden" value="N/A" />
+                        <input asp-for="DetailSeven" type="hidden" value="N/A" />
+                        <input asp-for="DetailEigth" type="hidden" value="N/A" />
+
+                        <div class="row mt-4">
+                            <div class="col-12 text-center">
+                                <button type="submit" class="btn btn-lg btn-primary me-3" id="submitBtn">
+                                    <i class="fas fa-calendar-check"></i> Register & Book Appointment
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div> <!-- card-body -->
+            </div> <!-- card -->
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+@section Scripts {
+    <script>
+        (function () {
+            const patientTypeRadios = document.querySelectorAll('input[name="patientType"]');
+            const existingRow = document.getElementById('existingPatientRow');
+            const extraFields = document.getElementById('extraFields');
+            const minimalFields = document.getElementById('minimalFields');
+
+            const existingSearch = document.getElementById('existingPatientSearch');
+            const existingList = document.getElementById('existingPatientList');
+            const loadMoreBtn = document.getElementById('loadMorePatients');
+
+            const nameInput = document.getElementById('inputName');
+            const dateSelect = document.getElementById('availableDateSelect');
+            const timeSelect = document.getElementById('availableTimeSelect');
+
+            // The submit button to hide for Existing patients
+            const submitBtn = document.getElementById('submitBtn');
+            // (Optional) keep Quick Book visible for existing — if you want to hide it too, set quickBookBtn.style.display = 'none' below
+            const quickBookBtn = document.getElementById('quickBookBtn');
+
+            // state variable to track the selected patient for update
+            window.selectedPatient = null;
+
+            // toggle UI: New => show minimalFields + submit; Existing => hide minimalFields + submit, show search
+            function toggleForPatientType() {
+                const selected = document.querySelector('input[name="patientType"]:checked').value;
+                const extraInputs = extraFields ? extraFields.querySelectorAll('input, select, textarea') : [];
+
+                if (selected === 'new') {
+                    if (minimalFields) minimalFields.style.display = '';
+                    if (existingRow) existingRow.style.display = 'none';
+                    if (extraFields) extraFields.style.display = 'none';
+                    // disable extra fields so they don't validate/submit
+                    extraInputs.forEach(el => el.disabled = true);
+
+                    if (submitBtn) submitBtn.style.display = '';
+                    if (quickBookBtn) quickBookBtn.style.display = 'none';
+                } else {
+                    if (minimalFields) minimalFields.style.display = 'none';
+                    if (existingRow) existingRow.style.display = '';
+                    if (extraFields) extraFields.style.display = 'none';
+
+                    if (submitBtn) submitBtn.style.display = 'none';
+                    if (quickBookBtn) quickBookBtn.style.display = '';
+                    loadExistingPatients('', 1, false);
+                }
+
+                updateSummary();
+            }
+
+            patientTypeRadios.forEach(r => r.addEventListener('change', toggleForPatientType));
+            toggleForPatientType(); // initial
+
+            // available times fetch logic
+            if (dateSelect && timeSelect) {
+                const fetchTimes = (dateVal, targetSelect) => {
+                    const selectEl = targetSelect || timeSelect;
+                    selectEl.innerHTML = '<option value="">-- Select Time --</option>';
+                    if (!dateVal) {
+                        selectEl.disabled = true;
+                        updateSummary();
+                        return;
+                    }
+                    selectEl.disabled = false;
+                    fetch(`/AppointmentRegister/GetAvailableTimes?selectedDate=${encodeURIComponent(dateVal)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            data.forEach(item => {
+                                const opt = document.createElement('option');
+                                opt.value = item.value;
+                                opt.textContent = item.text;
+                                selectEl.appendChild(opt);
+                            });
+                            updateSummary();
+                        })
+                        .catch(err => {
+                            console.error('Error fetching times:', err);
+                        });
+                };
+
+                timeSelect.innerHTML = '<option value="">-- Select Time --</option>';
+                if (dateSelect.value) {
+                     fetchTimes(dateSelect.value);
+                } else {
+                     timeSelect.disabled = true;
+                }
+
+                dateSelect.addEventListener('change', function () {
+                    fetchTimes(this.value);
+                });
+            }
+
+            // existing patients AJAX listing
+            let currentQuery = '';
+            let currentPage = 1;
+            const pageSize = 20;
+            let totalCount = 0;
+
+            function debounce(fn, delay) {
+                let t;
+                return function (...args) {
+                    clearTimeout(t);
+                    t = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            async function loadExistingPatients(q = '', page = 1, append = false) {
+                try {
+                    currentQuery = q || '';
+                    currentPage = page || 1;
+                    const url = `/AppointmentRegister/GetPatients?q=${encodeURIComponent(currentQuery)}&page=${currentPage}&pageSize=${pageSize}`;
+                    const res = await fetch(url);
+                    const payload = await res.json();
+                    const items = payload.items || [];
+                    totalCount = payload.totalCount || 0;
+
+                    if (!append) existingList.innerHTML = '';
+                    if (items.length === 0 && !append) existingList.innerHTML = '<div class="list-group-item text-muted">No results</div>';
+
+                    items.forEach(p => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'list-group-item list-group-item-action existing-patient-item';
+                        btn.dataset.id = p.id;
+                        btn.dataset.name = p.name || '';
+                        btn.dataset.mobile = p.mobile || '';
+                        btn.dataset.email = p.email || '';
+                        btn.dataset.address = p.address || '';
+                        btn.dataset.birthdate = p.birthDate ? (new Date(p.birthDate)).toISOString().slice(0,10) : '';
+                        btn.dataset.availableday = p.availableDay || '';
+                        btn.dataset.availabletime = p.availableTime || ''
+                        btn.innerHTML = `<div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">${p.name}</h6>
+                                            <small class="text-muted">${p.mobile || ''}</small>
+                                         </div>
+                                         <small class="text-muted">${p.email || ''}</small>`;
+                        existingList.appendChild(btn);
+                    });
+
+                    const loadedCount = existingList.querySelectorAll('.existing-patient-item').length;
+                    loadMoreBtn.style.display = (loadedCount < totalCount) ? 'inline-block' : 'none';
+                } catch (err) {
+                    console.error(err);
+                    if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+                }
+            }
+
+            if (existingSearch) existingSearch.addEventListener('input', debounce(e => loadExistingPatients(e.target.value.trim(), 1, false), 350));
+            if (loadMoreBtn) loadMoreBtn.addEventListener('click', () => loadExistingPatients(currentQuery, currentPage + 1, true));
+
+            // select existing item
+            if (existingList) {
+                existingList.addEventListener('click', function (e) {
+                    const btn = e.target.closest('.existing-patient-item');
+                    if (!btn) return;
+                    existingList.querySelectorAll('.existing-patient-item').forEach(x => x.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // build selectedPatient object for the Update modal
+                    selectedPatient = {
+                        id: btn.dataset.id || null,
+                        name: btn.dataset.name || '',
+                        availableDay: btn.dataset.availableday || '',
+                        availableTime: btn.dataset.availabletime || ''
+                    };
+
+                    // copy into the minimal/main inputs (existing behavior)
+                    if (nameInput) nameInput.value = selectedPatient.name || '';
+                    if (selectedPatient.birthDate && document.getElementById('birthDate')) {
+                        const bd = document.getElementById('birthDate');
+                        if (bd._flatpickr) bd._flatpickr.setDate(selectedPatient.birthDate, true, "Y-m-d");
+                        else bd.value = selectedPatient.birthDate;
+                        if (typeof calculateAge === 'function') calculateAge();
+                    }
+
+                    // keep extraFields hidden as before
+                    if (extraFields) extraFields.style.display = 'none';
+
+                    updateSummary();
+                });
+            }
+
+            // helper to normalize times from server (raw) into "HH:MM"
+            function normalizeTimeValue(raw) {
+                if (!raw) return '';
+                raw = raw.toString().trim();
+                // If raw contains am/pm, parse with Date
+                if (/am|pm/i.test(raw)) {
+                    const dt = new Date('1970-01-01 ' + raw);
+                    if (!isNaN(dt.getTime())) return dt.toTimeString().slice(0,5);
+                }
+                // If raw looks like TimeSpan "09:30:00.0000000" or "09:30:00"
+                const parts = raw.split(':');
+                if (parts.length >= 2) {
+                    const hh = parts[0].padStart(2, '0');
+                    const mm = parts[1].slice(0,2);
+                    return `${hh}:${mm}`;
+                }
+                return '';
+            }
+
+            // replace the quickBookBtn click handler to open the Update modal
+            if (quickBookBtn) {
+                quickBookBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    if (!selectedPatient || !selectedPatient.id) {
+                        alert('Please select an existing patient first.');
+                        return;
+                    }
+
+                    // populate modal form fields
+                    const setIf = (id, value) => {
+                        const el = document.getElementById(id);
+                        if (el) el.value = value ?? '';
+                    };
+
+                    setIf('modal_Id', selectedPatient.id);
+                    setIf('modal_Name', selectedPatient.name);
+                
+
+                    // set service (prefer existing select if present)
+                    const svc = document.getElementById('medicalServiceSelectExisting')?.value || document.getElementById('medicalServiceSelect')?.value || '';
+                    setIf('modal_MedicalServices', svc);
+
+                    // set preferred date/time in modal selects
+                    const modalDate = document.getElementById('modal_AvailableDate');
+                    const modalTime = document.getElementById('modal_AvailableTime');
+                    if (modalDate) {
+                        modalDate.value = selectedPatient.availableDay || '';
+                        // load times for that date then set selected time
+                        const fetchModalTimes = (dateVal) => {
+                            if (!modalTime) return;
+                            modalTime.innerHTML = '<option value="">-- Select Time --</option>';
+                            if (!dateVal) {
+                                modalTime.disabled = true;
+                                return;
+                            }
+                            modalTime.disabled = false;
+                            fetch(`/AppointmentRegister/GetAvailableTimes?selectedDate=${encodeURIComponent(dateVal)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    data.forEach(item => {
+                                        const opt = document.createElement('option');
+                                        opt.value = item.value;
+                                        opt.textContent = item.text;
+                                        modalTime.appendChild(opt);
+                                    });
+                                    // try to set selected value from stored patient availableTime
+                                    const normalized = normalizeTimeValue(selectedPatient.availableTime);
+                                    if (normalized) {
+                                        modalTime.value = normalized;
+                                    }
+                                })
+                                .catch(err => console.error('err', err));
+                        };
+                        fetchModalTimes(modalDate.value);
+                        modalDate.addEventListener('change', function () {
+                            if (!modalTime) return;
+                            fetch(`/AppointmentRegister/GetAvailableTimes?selectedDate=${encodeURIComponent(this.value)}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    modalTime.innerHTML = '<option value="">-- Select Time --</option>';
+                                    data.forEach(item => {
+                                        const opt = document.createElement('option');
+                                        opt.value = item.value;
+                                        opt.textContent = item.text;
+                                        modalTime.appendChild(opt);
+                                    });
+                                    modalTime.disabled = false;
+                                })
+                                .catch(err => console.error(err));
+                        });
+                    }
+
+                    if (window.bootstrap) {
+                        new bootstrap.Modal(document.getElementById('updatePersonModal')).show();
+                    }
+                });
+            }
+
+            // summary update
+            function updateSummary() {
+                const name = (nameInput && nameInput.value) ? nameInput.value : '—';
+                const date = (dateSelect && dateSelect.value) ? new Date(dateSelect.value).toLocaleDateString() : '—';
+                const time = (timeSelect && timeSelect.value) ? timeSelect.options[timeSelect.selectedIndex].text : '—';
+                const elName = document.getElementById('summaryName');
+                const elDate = document.getElementById('summaryDate');
+                const elTime = document.getElementById('summaryTime');
+                if (elName) elName.textContent = name || '—';
+                if (elDate) elDate.textContent = date;
+                if (elTime) elTime.textContent = time;
+            }
+
+            [nameInput, dateSelect, timeSelect].forEach(el => {
+                if (!el) return;
+                el.addEventListener('change', updateSummary);
+                el.addEventListener('input', updateSummary);
+            });
+
+            // flatpickr for birthDate
+            if (window.flatpickr) {
+                flatpickr("#birthDate", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "m-d-Y",
+                    onChange: function () { if (typeof calculateAge === 'function') calculateAge(); }
+                });
+            }
+
+            updateSummary();
+        })();
+    </script>
+
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+
+
+<!-- Update Person Info modal (replace existing modal) -->
+<div class="modal fade rebook-modal" id="updatePersonModal" tabindex="-1" aria-labelledby="updatePersonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updatePersonModalLabel">
+                    <i class="fas fa-user-plus me-2"></i> Rebooking Appointment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <input type="hidden" id="modal_Id" />
+
+                <div class="row g-3 align-items-center">
+                    <div class="col-md-5">
+                        <label class="form-label mb-1">Name</label>
+                        <input id="modal_Name" class="form-control" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Preferred Date</label>
+                        <select id="modal_AvailableDate" class="form-select">
+                            <option value="">-- Select Date --</option>
+                            @if (availableDays != null && availableDays.Any())
+                            {
+                                foreach (var day in availableDays)
+                                {
+                                    <option value="@day.Value">@day.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label mb-1">Preferred Time</label>
+                        <select id="modal_AvailableTime" class="form-select" disabled>
+                            <option value="">-- Select Time --</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div> <!-- modal-body -->
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modalUpdateBtn">Update</button>
+            </div>
+        </div> <!-- modal-content -->
+    </div> <!-- modal-dialog -->
+</div> <!-- modal -->
+
+<script>
+    (function () {
+        const modalUpdateBtn = document.getElementById("modalUpdateBtn");
+        if (!modalUpdateBtn) {
+            console.warn("modalUpdateBtn not found");
+            return;
+        }
+
+        modalUpdateBtn.addEventListener("click", async function () {
+            console.log("modalUpdateBtn clicked");
+
+            const id = parseInt(document.getElementById("modal_Id")?.value || "0", 10);
+            if (!id) {
+                alert("Please select a patient first.");
+                return;
+            }
+
+            // disable UI while submitting
+            modalUpdateBtn.disabled = true;
+            const originalText = modalUpdateBtn.textContent;
+            modalUpdateBtn.textContent = "Updating...";
+
+            try {
+                const rawBirth = document.getElementById("modal_BirthDay")?.value || "";
+                let birthIso = null;
+                if (rawBirth.trim() !== "") {
+                    const d = new Date(rawBirth);
+                    if (!isNaN(d.getTime())) birthIso = d.toISOString();
+                }
+
+                const payload = {
+                    id: id,
+                    name: document.getElementById("modal_Name")?.value || "",
+                    availableDay: document.getElementById("modal_AvailableDate")?.value || "",
+                    availableTime: document.getElementById("modal_AvailableTime")?.value || ""
+                };
+
+                console.log("QuickUpdate payload:", payload);
+
+                const res = await fetch("/AppointmentRegister/QuickUpdate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                // If server returns non-JSON (500, etc.) surface the text for debugging
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error("Server error " + res.status + " — " + text);
+                }
+
+                // parse JSON; guard against invalid JSON
+                let data;
+                try {
+                    data = await res.json();
+                } catch (ex) {
+                    const txt = await res.text();
+                    throw new Error("Invalid JSON response from server: " + txt);
+                }
+
+                console.log("QuickUpdate response:", data);
+
+                if (!data || data.success !== true) {
+                    const msg = (data && data.error) ? data.error : "Update failed";
+                    throw new Error(msg);
+                }
+
+                // hide modal and redirect to Today's Schedules index
+                if (window.bootstrap) {
+                    const modalEl = document.getElementById("updatePersonModal");
+                    const instance = bootstrap.Modal.getInstance(modalEl);
+                    if (instance) instance.hide();
+                }
+
+                alert("Patient updated successfully");
+                // redirect to TodaySchedules index so the user lands on the schedule view
+                setTimeout(function () { window.location.href = '@Url.Action("Index", "TodaySchedules")'; }, 600);
+            } catch (err) {
+                console.error("QuickUpdate error:", err);
+                alert("Update failed: " + (err.message || err));
+            } finally {
+                modalUpdateBtn.disabled = false;
+                modalUpdateBtn.textContent = originalText;
+            }
+        });
+    })();
+</script>
+
+<script>
+    // Age calculation helpers — add inside your existing Scripts section
+    (function () {
+        // Parse many common date formats into a Date object safely.
+        function parseDateSafe(dateStr) {
+            if (!dateStr) return null;
+            // If already in ISO-like form YYYY-MM-DD or YYYY/MM/DD, Date will parse reliably
+            var d = new Date(dateStr);
+            if (!isNaN(d.getTime())) return d;
+
+            // Try common fallback: dd/mm/yyyy or dd-mm-yyyy
+            var parts = dateStr.split(/[\/\-\.]/);
+            if (parts.length === 3) {
+                // detect order: if year is first -> yyyy-mm-dd handled above; else assume dd-mm-yyyy
+                if (parts[0].length === 4) {
+                    // YYYY-MM-DD handled already, but try manually
+                    var y = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, day = parseInt(parts[2], 10);
+                    return new Date(y, m, day);
+                } else {
+                    var day = parseInt(parts[0], 10), m = parseInt(parts[1], 10) - 1, y = parseInt(parts[2], 10);
+                    if (!isNaN(day) && !isNaN(m) && !isNaN(y)) return new Date(y, m, day);
+                }
+            }
+
+            return null;
+        }
+
+        function calculateAgeFromDateObj(d) {
+            if (!d) return null;
+            var today = new Date();
+            var age = today.getFullYear() - d.getFullYear();
+            // adjust if birthday hasn't occurred yet this year
+            var m = today.getMonth() - d.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < d.getDate())) {
+                age--;
+            }
+            if (age < 0) age = 0;
+            return age;
+        }
+
+        function calculateAgeFromDateString(dateStr) {
+            var d = parseDateSafe(dateStr);
+            if (!d) return null;
+            return calculateAgeFromDateObj(d);
+        }
+
+        // Public function used in other places of the page (existing code calls calculateAge())
+        window.calculateAge = function () {
+            // main form
+            var birthEl = document.getElementById('birthDate');
+            var ageEl = document.getElementById('age');
+            var hiddenAge = document.getElementById('ageFieldHidden');
+
+            if (birthEl) {
+                var birthVal = birthEl.value;
+                var age = calculateAgeFromDateString(birthVal);
+                if (age !== null && ageEl) ageEl.value = age;
+                if (age !== null && hiddenAge) hiddenAge.value = age;
+                if ((age === null || age === undefined) && ageEl) ageEl.value = '';
+                if ((age === null || age === undefined) && hiddenAge) hiddenAge.value = '';
+            }
+
+            // modal
+            var modalBirthEl = document.getElementById('modal_BirthDay');
+            var modalAgeEl = document.getElementById('modal_Age');
+            if (modalBirthEl) {
+                var mb = modalBirthEl.value;
+                var mAge = calculateAgeFromDateString(mb);
+                if (mAge !== null && modalAgeEl) modalAgeEl.value = mAge;
+                if ((mAge === null || mAge === undefined) && modalAgeEl) modalAgeEl.value = '';
+            }
+        };
+
+        // Hook up listeners on DOM ready
+        document.addEventListener('DOMContentLoaded', function () {
+            var birthEl = document.getElementById('birthDate');
+            var modalBirthEl = document.getElementById('modal_BirthDay');
+
+            if (birthEl) {
+                birthEl.addEventListener('change', function () {
+                    // calculate and update
+                    calculateAge();
+                });
+                birthEl.addEventListener('input', function () {
+                    // update while typing / manual edit
+                    calculateAge();
+                });
+            }
+
+            if (modalBirthEl) {
+                modalBirthEl.addEventListener('change', function () {
+                    calculateAge();
+                });
+                modalBirthEl.addEventListener('input', function () {
+                    calculateAge();
+                });
+            }
+
+            // Initialize flatpickr on modal birth if available (keeps UX consistent)
+            if (window.flatpickr) {
+                flatpickr("#modal_BirthDay", {
+                    dateFormat: "Y-m-d",
+                    altInput: true,
+                    altFormat: "m-d-Y",
+                    onChange: function () {
+                        calculateAge();
+                    }
+                });
+            }
+
+            // run once in case values are pre-populated
+            calculateAge();
+        });
+
+        // Ensure when you populate modal fields programmatically you call calculateAge()
+        // Existing code already calls calculateAge() in several places; ensure it remains.
+    })();
+</script>
+

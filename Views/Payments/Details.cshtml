@@ -1,0 +1,203 @@
+﻿@model DCAS.Models.Payment
+
+@{
+    ViewData["Title"] = "Payment Details";
+}
+
+<style>
+    /* Styling for the details card */
+    .details-card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        background-color: #6c757d; /* Primary accent color */
+        color: white;
+        padding: 20px 30px;
+        border-bottom: none;
+    }
+
+        .card-header-custom h1 {
+            margin: 0;
+            font-weight: 300;
+            font-size: 1.8rem;
+        }
+
+    /* Styling for the Definition List (dl) rows */
+    .dl-horizontal-custom dt {
+        font-weight: 500;
+        color: #495057; /* Darker label color */
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+    }
+
+    .dl-horizontal-custom dd {
+        padding-top: .5rem;
+        padding-bottom: .5rem;
+        font-weight: 400;
+    }
+
+    /* Specific styles for key monetary values */
+    .total-amount {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #28a745; /* Green for total/paid amount */
+    }
+
+    .cash-change {
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    /* Status Badge Styling */
+    .badge-status {
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        background-color: #28a745; /* Paid: Green */
+        color: white;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card details-card">
+                <div class="card-header card-header-custom">
+                    <h1><i class="fas fa-file-invoice-dollar me-2"></i> Payment ID: @Model.PaymentId</h1>
+                </div>
+                <div class="card-body p-4 p-md-5">
+
+                    @* --- Section 1: Payment Summary --- *@
+                    <h4 class="mb-4 text-primary"><i class="fas fa-money-bill-wave me-2"></i> Financial Summary</h4>
+                    <dl class="row dl-horizontal-custom border-bottom pb-3 mb-4">
+
+                        <dt class="col-sm-3">Payment Date</dt>
+                        <dd class="col-sm-9">@Model.PaymentDate.ToString("MMMM dd, yyyy")</dd>
+
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.Status.Equals("Paid", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <span class="badge-status">
+                                    <i class="fas fa-check-circle me-1"></i> @Model.Status
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-warning text-dark">@Model.Status</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">Total Amount Paid</dt>
+                        <dd class="col-sm-9 total-amount">₱@Model.AmountPaid.ToString("N2")</dd>
+
+                        <dt class="col-sm-3">Cash Tendered</dt>
+                        <dd class="col-sm-9 cash-change">₱@Model.Cash.ToString("N2")</dd>
+
+                        <dt class="col-sm-3">Change</dt>
+                        <dd class="col-sm-9 cash-change text-danger">₱@Model.AmountChanged.ToString("N2")</dd>
+
+                        <dt class="col-sm-3">Payment Method</dt>
+                        <dd class="col-sm-9">@Html.DisplayFor(model => model.PaymentMethod)</dd>
+
+                    </dl>
+
+                    @* --- Section 2: Patient and Service Details --- *@
+                    <div class="card-body p-4 p-md-5">
+                        <h4 class="mb-4 text-info"><i class="fas fa-user-md me-2"></i> Patient & Service Information</h4>
+                        <dl class="row dl-horizontal-custom mb-4">
+
+                            <dt class="col-sm-3">Patient Name</dt>
+                            <dd class="col-sm-9">@Model.Person?.Name</dd>
+
+                            <dt class="col-sm-3">Service Rendered</dt>
+                            <dd class="col-sm-9">@Model.Service?.MedicalNameService</dd>
+
+                            <dt class="col-sm-3">Doctor / Dentist</dt>
+                            <dd class="col-sm-9">@Html.DisplayFor(model => model.DoctorName)</dd>
+
+                            <dt class="col-sm-3">Dentist Fee</dt>
+                            <dd class="col-sm-9">₱@Model.DentistFee.ToString("N2")</dd>
+
+                            <dt class="col-sm-3">Medicine Items</dt>
+                            <dd class="col-sm-9">
+                                @if (Model.PaymentMedicine != null && Model.PaymentMedicine.Any())
+                                {
+                                    <ul class="list-group list-group-flush mt-2">
+                                        @foreach (var medicine in Model.PaymentMedicine)
+                                        {
+                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1 ps-0 bg-transparent border-0">
+                                                <span>
+                                                    <strong>@medicine.MedicineName</strong>
+                                                </span>
+                                                <span class="fw-bold">
+                                                    ₱@medicine.Price.ToString("N2")
+                                                </span>
+                                            </li>
+                                        }
+                                        <li class="list-group-item d-flex justify-content-between align-items-center p-1 ps-0 fw-bold border-top mt-2">
+                                            <span class="text-dark">Total Medicine Fee:</span>
+                                            <span class="text-success fs-6">
+                                                ₱@Model.PaymentMedicine.Sum(pm => pm.Price).ToString("N2")
+                                            </span>
+                                        </li>
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No medicine dispensed.</span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-3">Services</dt>
+                            <dd class="col-sm-9">
+                                @if (Model.PaymentServices != null && Model.PaymentServices.Any())
+                                {
+                                    <ul class="list-group list-group-flush mt-2">
+                                        @foreach (var svc in Model.PaymentServices)
+                                        {
+                                            <li class="list-group-item d-flex justify-content-between align-items-center p-1 ps-0 bg-transparent border-0">
+                                                <span>@svc.Service?.MedicalNameService</span>
+                                                <span class="fw-bold">₱@svc.UnitPrice.ToString("N2")</span>
+                                            </li>
+                                        }
+                                        <li class="list-group-item d-flex justify-content-between align-items-center p-1 ps-0 fw-bold border-top mt-2">
+                                            <span class="text-dark">Total Service Fee:</span>
+                                            <span class="text-success fs-6">
+                                                ₱@Model.PaymentServices.Sum(ps => ps.UnitPrice).ToString("N2")
+                                            </span>
+                                        </li>
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No services recorded.</span>
+                                }
+                            </dd>
+
+                        </dl>
+
+                    @* --- Action Buttons --- *@
+                    <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center">
+                        <div>
+                            <a asp-action="Edit" asp-route-id="@Model?.PaymentId" class="btn btn-warning">
+                                <i class="fas fa-edit me-1"></i> Edit Payment
+                            </a>
+                        </div>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to List
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

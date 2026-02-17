@@ -1,0 +1,214 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+
+    // Determine role label for greeting
+    var roleLabel = "your Account";
+    if (User?.Identity?.IsAuthenticated ?? false)
+    {
+        if (User.IsInRole("Administrator") || User.IsInRole("Admin"))
+        {
+            roleLabel = "your Admin account";
+        }
+        else
+        {
+            roleLabel = "your Staff account";
+        }
+    }
+}
+<style>
+    :root{
+        --brand-brown: #7A4B00;    /* primary brown */
+        --brand-gold:  #D9B46C;    /* accent */
+        --surface:     #F6EFEF;    /* card background */
+        --muted-text:  #6f5252;
+        --panel-radius: 10px;
+        --card-shadow: 0 8px 18px rgba(0,0,0,0.08);
+    }
+
+    /* overall hero/logo */
+    .hero-logo {
+        max-width: 780px;
+        width: 90%;
+        height: auto;
+        margin: 3.5rem auto 1.75rem;
+        display: block;
+    }
+
+    .greeting-card {
+        max-width: 920px;
+        margin: 0 auto 1.75rem;
+        padding: 0 1rem;
+    }
+
+    .panel-row {
+        gap: 1rem;
+        margin-top: 1.75rem;
+        justify-content: center;
+    }
+
+    .panel-card {
+        border-radius: var(--panel-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+        width: 100%;
+        max-width: 680px;
+        background: linear-gradient(180deg, #E8D4AD, #E8D4AD);
+    }
+
+    /* header bar for each card */
+    .panel-header {
+        background-color: var(--brand-brown);
+        color: #E8D4AD;
+        padding: 0.9rem 1rem;
+        text-align: center;
+        font-weight: 600;
+        border-top-left-radius: var(--panel-radius);
+        border-top-right-radius: var(--panel-radius);
+    }
+
+    .panel-header.d-flex {
+        text-align: left;
+    }
+
+    /* card body uses pale gold surface and muted text */
+    .panel-body {
+        padding: 1rem;
+        color: var(--muted-text);
+        line-height: 1.5;
+        background: linear-gradient(180deg, rgba(217,180,108,0.06), rgba(246,239,239,0.18));
+    }
+
+    /* special welcome card styling */
+    .welcome-outer {
+        display: flex;
+        justify-content: center;
+        margin-top: 0.5rem;
+    }
+
+    .welcome-card {
+        width: 640px;
+        max-width: 95%;
+        border-radius: var(--panel-radius);
+        overflow: hidden;
+        box-shadow: var(--card-shadow);
+    }
+
+    .welcome-card .panel-header {
+        background-color: var(--brand-brown);
+        color: #E8D4AD;
+        font-size: 1.05rem;
+    }
+
+    .welcome-card .panel-body {
+        background-color: #E8D4AD; /* slightly darker pale gold for welcome */
+        color: var(--muted-text);
+        text-align: center;
+    }
+
+    /* latest header action button */
+    .latest-header-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,0.06);
+        background: #E8D4AD;
+        color: var(--brand-brown);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .latest-header-action svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+    }
+
+    /* responsive */
+    @@media (max-width: 991px) {
+        .hero-logo { max-width: 100%; margin: 2rem auto; }
+        .panel-row { flex-direction: column; }
+        .panel-card { max-width: 100%; }
+        .welcome-card { width: 95%; }
+    }
+</style>
+
+<!-- Hero / Logo -->
+<div class="text-center">
+    <img src="~/Logo.png" alt="Beyond Dental Logo" class="img-fluid hero-logo" />
+</div>
+
+<!-- Centered Greeting card (role-aware) -->
+<div class="container greeting-card">
+    <div class="welcome-outer">
+        <div class="card welcome-card">
+            <div class="panel-header">Welcome</div>
+            <div class="panel-body">
+                <h5 class="mb-2">Hello — Welcome to @roleLabel</h5>
+                <p class="mb-0">We are committed to providing personalized, gentle dental care in a comfortable environment for your entire family. Bringing life to your smile.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Two-column information area -->
+<section class="container my-4">
+    <div class="row panel-row d-flex justify-content-center">
+        <div class="col-lg-5 col-md-6 mb-3 d-flex justify-content-center">
+            <div class="card panel-card">
+                <div class="panel-header">About Us</div>
+                <div class="panel-body">
+                    <p>We understand the impact that your oral health can have on the well-being of your entire body. Diseases of the mouth have been linked to serious conditions like diabetes and high blood pressure. Dr. Nina Ricci Antipala-Rivera is dedicated to helping you maintain optimal oral health to keep you as healthy and happy as possible.</p>
+                    <p class="mb-0">Our goal is to help patients make informed choices about the level of dental health that is most appropriate for them. We will help you develop a plan tailored to your needs and encourage informed decisions.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5 col-md-6 mb-3 d-flex justify-content-center">
+            <div class="card panel-card">
+                <!-- Header with admin-only icon button on the right -->
+                <div class="panel-header d-flex align-items-center justify-content-between">
+                    <span>Latest Update</span>
+
+                    @if (User?.Identity?.IsAuthenticated == true && (User.IsInRole("Admin") || User.IsInRole("Administrator")))
+                    {
+                        <a class="latest-header-action" href="@Url.Action("Create","LatestUpdates")" title="Post update" role="button" aria-label="Post update">
+                            <!-- Inline SVG: pencil in square -->
+                            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor" aria-hidden="true" focusable="false">
+                                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                            </svg>
+                        </a>
+                    }
+                </div>
+
+                <div class="panel-body">
+                    @{
+                        var latest = ViewBag.LatestUpdate as DCAS.Models.LatestUpdate;
+                    }
+                    @if (latest != null)
+                    {
+                        <h6 class="mb-2"><strong>@latest.Title</strong></h6>
+                        <p class="text-muted"><em>@latest.CreatedAt.ToLocalTime().ToString("MMMM d, yyyy 'at' h:mm tt")</em></p>
+                        @if (!string.IsNullOrWhiteSpace(latest.Summary))
+                        {
+                            <p class="mb-2"><strong>@latest.Summary</strong></p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(latest.Body))
+                        {
+                            <p class="mb-2">@Html.Raw(latest.Body?.Replace("\n","<br/>"))</p>
+                        }
+                        if (latest.Image != null)
+                        {
+                            <img src="@Url.Action("GetImage", "LatestUpdates", new { id = latest.Id })" alt="Post image" class="img-fluid rounded" />
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No updates yet. Admins can post updates with images from the Latest Updates page.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
